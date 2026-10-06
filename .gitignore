@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Next.js
+.next/
+out/
+
+# Local environments and platform metadata
+.env*
+!.env.example
+.vercel/
+.mcp-runtime/
+
+# Test and tooling output
+coverage/
+*.tsbuildinfo
+pnpm-debug.log*
+npm-debug.log*
+
+# OS and editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.vercel
+.impeccable/
+
