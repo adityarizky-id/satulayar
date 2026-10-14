@@ -3,6 +3,7 @@
 import Link from "next/link";
 import {
   useEffect,
+  useRef,
   useState,
   useSyncExternalStore,
   type ComponentType,
@@ -129,19 +130,55 @@ export function DashboardSidebar({
   // drawer the reader just summoned would defeat the point of opening it.
   const isCollapsed = persistedCollapsed && !mobileOpen;
   const toggleLabel = isCollapsed ? "Expand sidebar" : "Collapse sidebar";
+  const asideRef = useRef<HTMLElement>(null);
 
+  // The open drawer is modal: focus moves into it, Tab stays inside it, the
+  // page behind it is inert, and closing returns focus to whatever opened it.
   useEffect(() => {
     if (!mobileOpen) return;
 
+    const opener =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const main = document.getElementById("main-content");
+    const focusables = () =>
+      Array.from(
+        asideRef.current?.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ) ?? [],
+      );
+
     function handleKeydown(event: KeyboardEvent): void {
-      if (event.key === "Escape") onMobileClose?.();
+      if (event.key === "Escape") {
+        onMobileClose?.();
+        return;
+      }
+      if (event.key !== "Tab") return;
+
+      const items = focusables();
+      if (items.length === 0) return;
+      const first = items[0] as HTMLElement;
+      const last = items[items.length - 1] as HTMLElement;
+      const active = document.activeElement;
+
+      if (event.shiftKey && (active === first || !asideRef.current?.contains(active))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (active === last || !asideRef.current?.contains(active))) {
+        event.preventDefault();
+        first.focus();
+      }
     }
 
     document.body.style.overflow = "hidden";
+    main?.setAttribute("inert", "");
     window.addEventListener("keydown", handleKeydown);
+    focusables()[0]?.focus();
+
     return () => {
       document.body.style.overflow = "";
+      main?.removeAttribute("inert");
       window.removeEventListener("keydown", handleKeydown);
+      opener?.focus();
     };
   }, [mobileOpen, onMobileClose]);
 
@@ -157,6 +194,9 @@ export function DashboardSidebar({
       )}
       <aside
         aria-label="Primary navigation"
+        aria-modal={mobileOpen ? true : undefined}
+        ref={asideRef}
+        role={mobileOpen ? "dialog" : undefined}
         className={`sidebar ${isCollapsed ? "sidebar--collapsed" : ""} ${
           mobileOpen ? "sidebar--mobile-open" : ""
         }`}
@@ -286,12 +326,15 @@ export const NAV_GROUPS: NavGroup[] = [
         label: "Data sources",
         href: "/data-sources",
         icon: PlugIcon,
+        // Rows render as `connector-row-<id>`. Planned connectors are listed on
+        // the page itself, so only connectable sources get a shortcut here.
         children: [
-          { label: "Google Ads", href: "/data-sources#google-ads" },
-          { label: "Meta Ads", href: "/data-sources#meta-ads" },
-          { label: "Bing Ads", href: "/data-sources#bing-ads" },
-          { label: "TikTok Ads", href: "/data-sources#tiktok-ads" },
-          { label: "Google Analytics", href: "/data-sources#google-analytics" },
+          { label: "Google Ads", href: "/data-sources#connector-row-google-ads" },
+          { label: "Meta Ads", href: "/data-sources#connector-row-meta-ads" },
+          {
+            label: "Google Analytics",
+            href: "/data-sources#connector-row-google-analytics",
+          },
         ],
       },
       {

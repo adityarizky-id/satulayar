@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 
 import { DashboardSidebar } from "@/components/dashboard/sidebar-nav";
 import { ThemeToggle } from "@/components/dashboard/theme-toggle";
@@ -49,6 +49,8 @@ export function AppFrame({
   children: ReactNode;
 }) {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+  // Stable, so the drawer's focus effect runs once per open, not per render.
+  const closeMobileNav = useCallback(() => setIsMobileNavOpen(false), []);
   const pathname = usePathname();
   const [lastPathname, setLastPathname] = useState(pathname);
 
@@ -68,7 +70,7 @@ export function AppFrame({
         activeHref={activeHref}
         brandHref={brandHref}
         mobileOpen={isMobileNavOpen}
-        onMobileClose={() => setIsMobileNavOpen(false)}
+        onMobileClose={closeMobileNav}
         platform={platform}
       >
         <div className="preview-card">

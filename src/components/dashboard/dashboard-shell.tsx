@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 
 import type {
@@ -1526,7 +1527,7 @@ export function DashboardShell({
       loading={isApplying}
       platform={snapshot.selectedPlatform}
       sidebarExtra={
-        <a className="text-link" href="#account-setup">View readiness →</a>
+        <Link className="text-link" href="/data-sources">Setup status →</Link>
       }
       skipLinkLabel="Skip to dashboard"
       topbar={
@@ -1683,9 +1684,9 @@ export function DashboardShell({
                       <a href="#data-health" className="data-health-popover__link" onClick={() => setIsDataHealthOverviewOpen(false)}>
                         View footer audit ↓
                       </a>
-                      <a href="#account-setup" className="data-health-popover__link" onClick={() => setIsDataHealthOverviewOpen(false)}>
-                        Readiness →
-                      </a>
+                      <Link href="/data-sources" className="data-health-popover__link" onClick={() => setIsDataHealthOverviewOpen(false)}>
+                        Setup status →
+                      </Link>
                     </div>
                     <button
                       type="button"

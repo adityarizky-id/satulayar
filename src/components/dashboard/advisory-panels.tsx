@@ -59,13 +59,15 @@ export function InsightAttachment({
   const observations = orderForScope(brief.observations, scope);
   const lead = observations[0];
   const actCount = observations.filter((item) => item.severity === "act").length;
-  const panelId = `advisory-${scope.replace(/\W+/g, "-").toLowerCase()}`;
+  const scopeSlug = scope.replace(/\W+/g, "-").toLowerCase();
+  const panelId = `advisory-${scopeSlug}`;
 
   return (
     <section
       aria-label={`Insight and recommendation for ${scope}`}
       className={`insight-strip${isOpen ? " insight-strip--open" : ""}`}
-      id="advisory"
+      // One strip per host card, so the id carries the scope to stay unique.
+      id={`insight-${scopeSlug}`}
     >
       <button
         aria-controls={panelId}

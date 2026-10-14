@@ -199,6 +199,19 @@ test("every sub-item points at a section on its own page", () => {
   }
 });
 
+test("data-source shortcuts target the rendered connector rows", () => {
+  // Rows render as `connector-row-<id>`; a bare `#google-ads` scrolled to
+  // nothing for every shortcut in this group.
+  const dataSources = NAV_GROUPS.flatMap((group) => group.sections).find(
+    (section) => section.href === "/data-sources",
+  );
+
+  assert.ok(dataSources?.children?.length);
+  for (const child of dataSources.children ?? []) {
+    assert.match(child.href, /^\/data-sources#connector-row-[a-z0-9-]+$/);
+  }
+});
+
 test("the previous year is complete and the current year stops at the reference day", () => {
   const yearly = buildYearlyPerformance("2026-07-14");
 

@@ -160,7 +160,7 @@
   --sidebar-active-bg: rgba(255, 255, 255, 0.12);
   --sidebar-text: rgba(237, 245, 240, 0.78);
   --sidebar-text-strong: #ffffff;
-  --sidebar-text-muted: rgba(237, 245, 240, 0.5);
+  --sidebar-text-muted: rgba(237, 245, 240, 0.62);
   --sidebar-card-bg: rgba(255, 255, 255, 0.055);
   --sidebar-scrollbar: rgba(237, 245, 240, 0.18);
   --sidebar-gradient-glow: radial-gradient(circle at 16% 6%,
@@ -319,8 +319,11 @@ html[data-theme="light"] {
   --surface-selected: rgba(34, 197, 94, 0.1);
   --text-primary: #111713;
   --text-secondary: #4f5f55;
-  --text-muted: #75847b;
-  --focus-ring: #1b9d4e;
+  /* 5.1:1 on the canvas; the previous #75847b measured 3.5:1 and failed AA. */
+  --text-muted: #5d6b63;
+  /* ≥3:1 against every light surface it sits on, including the active nav
+     tint; #1b9d4e measured 2.94:1 there. */
+  --focus-ring: #157a3d;
 
   /* Component layer. */
   --canvas-surface: radial-gradient(circle at 86% -8%, rgba(34, 197, 94, 0.08), transparent 30%),
@@ -438,7 +441,7 @@ html[data-theme="light"] {
   --sidebar-active-bg: rgba(34, 197, 94, 0.12);
   --sidebar-text: #435249;
   --sidebar-text-strong: #101713;
-  --sidebar-text-muted: #76847b;
+  --sidebar-text-muted: #5d6b63;
   --sidebar-card-bg: rgba(255, 255, 255, 0.58);
   --sidebar-scrollbar: rgba(67, 82, 73, 0.2);
   --sidebar-gradient-glow: radial-gradient(circle at 8% 0%, rgba(34, 197, 94, 0.1), transparent 32%);
@@ -523,7 +526,8 @@ html[data-theme="dark"] {
   --surface-selected: rgba(53, 226, 125, 0.1);
   --text-primary: #f1f6f2;
   --text-secondary: #a7b2aa;
-  --text-muted: #748078;
+  /* ≈6:1 on the dark canvas and cards; #748078 dipped below 4.5:1. */
+  --text-muted: #8a958d;
   --focus-ring: #35e27d;
 
   --canvas-surface: radial-gradient(circle at 82% -14%, rgba(53, 226, 125, 0.055), transparent 30%),
@@ -640,7 +644,7 @@ html[data-theme="dark"] {
   --sidebar-active-bg: rgba(53, 226, 125, 0.1);
   --sidebar-text: rgba(241, 246, 242, 0.72);
   --sidebar-text-strong: #f4faf6;
-  --sidebar-text-muted: rgba(241, 246, 242, 0.46);
+  --sidebar-text-muted: rgba(241, 246, 242, 0.62);
   --sidebar-card-bg: rgba(255, 255, 255, 0.04);
   --sidebar-scrollbar: rgba(241, 246, 242, 0.16);
   --sidebar-gradient-glow: radial-gradient(circle at 8% 0%, rgba(53, 226, 125, 0.08), transparent 30%);
@@ -819,8 +823,10 @@ select:focus-visible {
   transform: translateY(-150%);
   border-radius: var(--radius-sm);
   padding: 10px 14px;
-  color: var(--sl-white);
-  background: var(--sl-green-dark);
+  /* Inverts with the theme: primary ink on the canvas colour. White on the
+     dark theme's light green measured 1.35:1. */
+  color: var(--surface-canvas);
+  background: var(--text-primary);
   transition: transform 160ms ease;
 }
 
@@ -12201,7 +12207,7 @@ html[data-theme="dark"] .rfm-hover-card__row--highlight .rfm-hover-card__value {
 }
 
 .trend-chart:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--sl-green) 45%, transparent);
+  outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
@@ -13339,8 +13345,9 @@ html[data-theme="dark"] .rfm-hover-card__row--highlight .rfm-hover-card__value {
 .field__input-group .field__input:focus,
 .field input:focus {
   outline: none;
-  border-color: var(--sl-green);
-  box-shadow: 0 0 0 2px var(--sl-green-tint);
+  border-color: var(--focus-ring);
+  /* A visible ring, not a tint: the tint read at about 2.3:1. */
+  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .field__input-group .field__input {
@@ -14305,6 +14312,15 @@ html[data-theme="dark"] .rfm-hover-card__row--highlight .rfm-hover-card__value {
     max-height: calc(100dvh - 32px);
     overflow-y: auto;
     transform-origin: center;
+  }
+
+  /* A backdrop-filter makes its element the containing block for fixed
+     descendants, which pushed the full-screen picker below the viewport and
+     its Update button out of reach. The frost is invisible under the open
+     overlay anyway, so the bar drops it while the picker is open. */
+  .filter-bar:has(.period-picker__panel) {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
 
   .period-picker__body {
@@ -23167,6 +23183,30 @@ html[data-theme="light"] .topbar__operations {
 .filter-bar--condensed .button {
   height: 32px;
   min-height: 32px;
+}
+
+/* The operations group may shrink, but its contents cannot, so on a narrower
+   desktop they used to slide underneath the session controls. Lower-value
+   readouts step out one at a time instead; each stays available elsewhere
+   (identity on Account, sync time in the data status popover, timezone in the
+   period summary). The bar keeps its single 60px row. */
+@media (max-width: 1440px) {
+  .viewer-menu__identity {
+    display: none;
+  }
+}
+
+@media (max-width: 1280px) {
+  .topbar__meta--sync {
+    display: none;
+  }
+}
+
+@media (max-width: 1100px) {
+  .topbar__boundary-pill,
+  .topbar__meta:not(.topbar__meta--sync) {
+    display: none;
+  }
 }
 
 @media (max-width: 900px) {

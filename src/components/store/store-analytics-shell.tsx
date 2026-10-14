@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { BarList as BarListBase } from "@/components/charts/bar-list";
 import {
@@ -22,6 +22,7 @@ import {
   ChevronIcon,
   DownloadIcon,
   LightbulbIcon,
+  MenuIcon,
   RefreshIcon,
   SearchIcon,
 } from "@/components/dashboard/icons";
@@ -3524,6 +3525,10 @@ export function StoreAnalyticsShell({
   const [isDummyMode, setIsDummyMode] = useState<boolean>(
     initialModeStatus.resolved === "mock",
   );
+  // This page draws its own chrome, so it carries the same mobile drawer
+  // control as AppFrame; without it the sidebar was unreachable at ≤760px.
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+  const closeMobileNav = useCallback(() => setIsMobileNavOpen(false), []);
   const [comparisonWindow, setComparisonWindow] =
     useState<ComparisonWindow>("previous");
   /** The reader's own baseline dates. Only sent when the window is "custom". */
@@ -3746,7 +3751,11 @@ export function StoreAnalyticsShell({
     <div className="app-frame">
       <a className="skip-link" href="#main-content">Skip to store analytics</a>
 
-      <DashboardSidebar activeHref="/store-analytics">
+      <DashboardSidebar
+        activeHref="/store-analytics"
+        mobileOpen={isMobileNavOpen}
+        onMobileClose={closeMobileNav}
+      >
         {/* Same source as the hero badge and the footer, so the three cannot
             disagree about what the reader is looking at. */}
         <div className="preview-card">
@@ -3759,6 +3768,16 @@ export function StoreAnalyticsShell({
 
       <main className="main-panel" id="main-content">
         <header className="topbar">
+          <button
+            aria-controls="dashboard-primary-navigation"
+            aria-expanded={isMobileNavOpen}
+            aria-label="Open navigation"
+            className="mobile-nav-toggle"
+            onClick={() => setIsMobileNavOpen(true)}
+            type="button"
+          >
+            <MenuIcon />
+          </button>
           <Link className="mobile-brand" href="/" aria-label="Satulayar dashboard">
             <BrandMark />
             <strong>Satulayar</strong>
