@@ -122,9 +122,17 @@ Dark supersedes the previous gradient material and rounded control treatment:
 - Worklog retains review-before-publication, accessible forms and real sample
   labels. Account retains actual roles, permissions, workspace switching and
   audit state; no fictional session expiry or elevation action is introduced.
-- Light mappings and the existing Sign-in composition remain available;
-  their dedicated reconstruction is pending. Both receive compatibility checks
-  for shared markup changes. Saved theme choices are preserved.
+- Light reconstruction (18 October 2026): Light now shares the reconstructed
+  geometry, density and typography. Rules that name a Dark-only palette token
+  stay Dark-scoped. The Light material layer keeps the Light ZIP's 14px cards,
+  9–10px controls, 4px chips, shallow card shadow, flat `#F2F5F2` canvas and
+  `#E1E6E1`/`#D9E0D9` borders; the sidebar subtree remaps its own ink roles.
+  Muted text keeps the AA-compliant value and primary buttons keep dark text
+  on green rather than the reference's low-contrast white. Saved theme
+  choices are preserved.
+- Text overflow contract: bar-list labels, order-rail captions and the insight
+  lead reflow instead of truncating without a title. Below 680px the RFM grid
+  scrolls inside its figure, with rows tall enough for two-line segment names.
 
 The ZIP correction also moves Paid utility chrome above both sidebar and main
 content. Other routes keep the utility bar beside the sidebar. Desktop Worklog
