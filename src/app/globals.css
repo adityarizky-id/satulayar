@@ -458,6 +458,10 @@ html[data-theme="light"] {
   --sidebar-text-secondary: #8b9e91;
   --brand-mark-border: #235835;
   --brand-mark-fg: #35e27d;
+  /* Simulated-data marker: AA contrast on its own tint (Stitch Light). */
+  --mode-dummy-fg: #7e22ce;
+  --mode-dummy-bg: #f3e8ff;
+  --mode-dummy-border: #d8b4fe;
 
   --topbar-bg: rgba(255, 255, 255, 0.9);
   --topbar-edge: rgba(40, 63, 49, 0.1);
@@ -511,6 +515,9 @@ html[data-theme="light"] {
 
 html[data-theme="dark"] {
   color-scheme: dark;
+  --mode-dummy-fg: #c084fc;
+  --mode-dummy-bg: rgba(168, 85, 247, 0.15);
+  --mode-dummy-border: rgba(168, 85, 247, 0.35);
   /* Stitch dark workspace: flat ink surfaces and legible technical chrome. */
   --font-display: Inter, "Segoe UI Variable", "Segoe UI", sans-serif;
   --font-sans: Inter, "Segoe UI Variable", "Segoe UI", sans-serif;
@@ -22233,9 +22240,9 @@ html[data-theme="light"] .mode-toggle-btn--active.mode-toggle-btn--dummy {
 }
 
 .mode-badge--dummy {
-  background: rgba(168, 85, 247, 0.15) !important;
-  border-color: rgba(168, 85, 247, 0.35) !important;
-  color: #c084fc !important;
+  background: var(--mode-dummy-bg) !important;
+  border-color: var(--mode-dummy-border) !important;
+  color: var(--mode-dummy-fg) !important;
 }
 
 .mode-badge--live {
@@ -25196,3 +25203,26 @@ html[data-theme] :is(.bar-list__label, .order-rail__step small, .insight-strip__
   overflow-wrap: anywhere;
 }
 html[data-theme] .bar-list__meta { align-items: flex-start; }
+
+/* Review fixes, 18 October 2026 (both themes).
+   Values and deltas never break inside a number; a table that cannot fit
+   scrolls inside its own bounded scroller instead. */
+html[data-theme] :is(.platform-metric__value, .platform-metric__comparison) { white-space: nowrap; }
+html[data-theme] .rfm-customer-table thead th { white-space: nowrap; }
+html[data-theme] .rfm-customer-table td:not(:first-child) { white-space: nowrap; }
+html[data-theme] .rfm-customer-table td:first-child { min-width: 220px; max-width: 280px; }
+html[data-theme] .rfm-customer-table td:first-child :is(small, span, code) { overflow-wrap: anywhere; }
+/* Scorecard separators come from each card, so an unfilled last row is
+   empty canvas rather than a block of border colour. */
+html[data-theme] .metrics-grid:not(.yearly-performance__metrics) { background: transparent; border: 0; box-shadow: none; overflow: visible; }
+html[data-theme] .metrics-grid:not(.yearly-performance__metrics) > .metric-card { border: 0; border-radius: 0; outline: 1px solid var(--sl-border); }
+/* In-content links use content text roles, not the sidebar's. */
+html[data-theme] .main-panel .text-link { color: var(--text-secondary); }
+html[data-theme] .main-panel .text-link:hover { color: var(--text-primary); }
+/* Audience bridge: the segment label and its count wrap as units. */
+html[data-theme] .rfm-action-card__meta { flex-wrap: wrap; justify-content: flex-start; gap: 6px 10px; }
+html[data-theme] .rfm-action-card__count { white-space: nowrap; }
+/* Segment dot and name stay on one line; the R/F/M score sits beneath. */
+html[data-theme] .rfm-customer-table .rfm-cust-segment { display: inline-grid; grid-template-columns: auto 1fr; justify-items: start; align-items: center; column-gap: 6px; row-gap: 4px; }
+html[data-theme] .rfm-customer-table .rfm-cust-segment > small { grid-column: 1 / -1; }
+html[data-theme] .rfm-customer-table :is(th, td):nth-child(2) { text-align: left; }
