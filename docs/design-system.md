@@ -97,9 +97,8 @@ Dark supersedes the previous gradient material and rounded control treatment:
 - Flat ink canvas `#080A09`, cards `#0E110F`, secondary surfaces `#121613`,
   controls `#171C18`, and visible mineral borders `#253028`. Values remain
   defined in theme tokens; selectors consume semantic roles.
-- Inter and JetBrains Mono for the Store, Worklog, Account and Sources screens;
-  Segoe UI and Consolas for the reference-matched Paid screen. Fonts retain
-  system fallbacks. Restrained heading weight, mono metadata,
+- One type family across every screen (see Typography). Restrained heading
+  weight, mono metadata,
   square status labels, compact sidebar and controls, and distinct table bands.
 - Paid ads follows the Reference matched screen
   `c42cf7908bef47bb9e1f91852431de75`. Its snapshot and target disclosure share
@@ -159,7 +158,15 @@ metric controls, customer deep dive and export behavior remain available.
 ## Typography
 
 - Mode is **Operate**: readability and scanning outrank editorial spectacle.
-- Use the page-specific workhorse stacks defined above, with system fallbacks.
+- Family (18 October 2026): **SF Pro**, referenced by name only. Apple's licence
+  does not permit embedding or hosting SF Pro files on the web, so none are
+  bundled. Apple devices render it as the system font; other devices fall back
+  to Inter, then Segoe UI. Do not add SF font files to `public/` or `next/font`.
+- Roles: `--font-display` (SF Pro Display) for page titles and hero type at
+  20px and above; `--font-sans` (SF Pro Text) for section headings, body and
+  controls; `--font-mono` (SF Mono, falling back to JetBrains Mono / Consolas)
+  for values, timestamps, IDs and compact metadata. Sizes and weights carry the
+  hierarchy; changing the family never changes the scale.
 - Headings use weight and scale, never gradient text.
 - Data uses the mono stack with tabular numerals.
 - Body text is at least 12px; chart axes and short badges may use 9–10px.

@@ -242,9 +242,12 @@
   --shadow-card: none;
   --shadow-float: 0 24px 64px rgba(0, 0, 0, 0.34);
   --shadow-elevated: 0 18px 48px rgba(0, 0, 0, 0.28);
-  --font-display: Outfit, "Segoe UI Variable", Aptos, "Segoe UI", sans-serif;
-  --font-sans: Inter, "Segoe UI Variable", Aptos, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  /* SF Pro by name only: Apple platforms render their system font, other
+     devices fall back. No Apple font files are bundled (licence). Display is
+     for sizes of 20px and above, Text below, Mono for values and metadata. */
+  --font-display: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Inter Display", Inter, "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --font-sans: "SF Pro Text", -apple-system, BlinkMacSystemFont, Inter, "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "SF Mono", ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, Consolas, "Liberation Mono", monospace;
 
   /* Primitive type scale. Keep raw sizes here; components consume semantic
      roles below so a compact parent can never shrink an important value. */
@@ -542,9 +545,9 @@ html[data-theme="dark"] {
   --cohort-ink-4: var(--text-primary);
   --cohort-heat-empty: rgba(255, 255, 255, 0.025);
   /* Stitch dark workspace: flat ink surfaces and legible technical chrome. */
-  --font-display: Inter, "Segoe UI Variable", "Segoe UI", sans-serif;
-  --font-sans: Inter, "Segoe UI Variable", "Segoe UI", sans-serif;
-  --font-mono: "JetBrains Mono", Consolas, "Liberation Mono", monospace;
+  --font-display: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Inter Display", Inter, "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --font-sans: "SF Pro Text", -apple-system, BlinkMacSystemFont, Inter, "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "SF Mono", ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, Consolas, "Liberation Mono", monospace;
   --surface-graphite-lowest: #0d0f0e;
   --surface-graphite-low: #1a1c1b;
   --border-subtle: #1d241f;
@@ -24631,7 +24634,6 @@ html[data-theme] .app-frame {
   color: var(--text-primary);
   font-family: var(--font-sans);
 }
-html[data-theme] .app-frame--paid { --font-sans: "Segoe UI", system-ui, sans-serif; --font-mono: Consolas, "Liberation Mono", monospace; }
 html[data-theme="dark"] .app-frame--paid { --sl-border: var(--border-subtle); }
 html[data-theme="dark"] .app-frame--store { --surface-canvas: var(--surface-graphite-lowest); --surface-card: var(--surface-graphite-low); --surface-card-alt: var(--surface-graphite-low); --panel-surface: var(--surface-graphite-low); --sidebar-gradient-surface: var(--surface-graphite-lowest); --topbar-bg: var(--surface-graphite-low); --text-primary: var(--text-neutral); --text-secondary: var(--text-neutral-secondary); }
 html[data-theme="dark"] :is(.app-frame--sources, .app-frame--account) { --topbar-bg: var(--surface-graphite-low); }
@@ -24674,7 +24676,7 @@ html[data-theme] .viewer-menu__identity strong { font-size: 10px; letter-spacing
 html[data-theme] .viewer-menu__signout { border-radius: 4px; background: var(--surface-control); font-size: 12px; font-weight: 400; }
 html[data-theme] .theme-toggle { border-radius: 16px; min-height: 34px; padding: 4px 6px; border-color: var(--sl-border); background: var(--surface-card-alt); box-shadow: none; }
 html[data-theme] :is(.hero.hero--dashboard, .hero.hero--worklog, .console-page-header, .account-page-header) { margin: 0 0 20px; padding: 20px 0 16px; border-bottom: 1px solid var(--sl-border); }
-html[data-theme] :is(.hero.hero--dashboard h1, .hero--worklog h1, .console-page-header h1, .account-page-header h1) { font-family: var(--font-sans); font-size: 24px; font-weight: 600; letter-spacing: -0.035em; }
+html[data-theme] :is(.hero.hero--dashboard h1, .hero--worklog h1, .console-page-header h1, .account-page-header h1) { font-family: var(--font-display); font-size: 24px; font-weight: 600; letter-spacing: -0.035em; }
 html[data-theme] :is(.console-page-header p, .account-page-header p, .hero--worklog p) { color: var(--text-secondary); font-size: 13px; font-weight: 400; }
 html[data-theme] :is(.hero__data-mode, .hero__currency, .worklog-sample-label, .signal-chip, .target-chip, .platform-mark, .worklog-stream-badge, .worklog-status-chip) { border-radius: 3px; box-shadow: none; }
 html[data-theme] .filter-bar { padding: 12px; border-radius: 6px; border-color: var(--sl-border); box-shadow: none; }
@@ -25293,3 +25295,8 @@ html[data-theme] .rfm-deepdive { margin: 20px 0 0; box-shadow: var(--card-shadow
   html[data-theme] #store-scorecard .metrics-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   html[data-theme] #store-scorecard .metrics-grid > .metric-card:last-child:nth-child(6n + 5) { grid-column: span 2; }
 }
+
+/* Typography hierarchy on SF Pro. Display carries page titles and hero type
+   (20px and above); section headings, body and controls use Text; values,
+   timestamps and IDs keep Mono. Sizes and weights are unchanged. */
+h1, .auth-stage__headline, .auth-card__intro :is(h1, h2), .audit-console-header h2 { font-family: var(--font-display); }
