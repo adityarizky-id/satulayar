@@ -266,6 +266,17 @@ export class Ga4ApiClient {
       );
       const record = await getConnectorToken("google-analytics", this.clientSlug);
       if (record?.refreshToken) {
+        if (record.metadata?.configuredVia === "direct_platform_form") {
+          const { clientId, clientSecret } = record.metadata;
+          // A refresh grant and its OAuth client are an indivisible pair.
+          // Incomplete stored forms must never borrow another app's client.
+          if (typeof clientId !== "string" || !clientId.trim() || typeof clientSecret !== "string" || !clientSecret.trim()) {
+            this.resolvedRefreshToken = "";
+            return "";
+          }
+          this.config.clientId = clientId;
+          this.config.clientSecret = clientSecret;
+        }
         // A refresh token has no expiry of its own; `expires_at` describes the
         // access token that came with it, so an expired value is not a reason
         // to refuse the refresh.

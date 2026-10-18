@@ -12,6 +12,53 @@ export type ConnectorProviderKind =
   | "managed-mcp"
   | "mock";
 
+export type DirectConnectorPlatform = "google-ads" | "meta-ads" | "google-analytics";
+export type PlatformCredentialValues = Record<string, string>;
+
+/** Value-free validation shared by platform forms and the save endpoint. */
+export function validatePlatformCredentials(
+  platform: DirectConnectorPlatform,
+  input: Record<string, unknown>,
+): { field: string; message: string } | null {
+  const required = platform === "meta-ads"
+    ? ["customerId", "accessToken", "apiVersion", "tokenExpiresAt"]
+    : platform === "google-analytics"
+      ? ["propertyId", "clientId", "clientSecret", "refreshToken"]
+      : ["customerId", "developerToken", "clientId", "clientSecret", "refreshToken"];
+  for (const field of required) {
+    if (typeof input[field] !== "string" || !input[field].trim()) {
+      return { field, message: "This field is required." };
+    }
+  }
+  for (const [field, value] of Object.entries(input)) {
+    if (typeof value === "string" && value.length > 8192) {
+      return { field, message: "This value is too long." };
+    }
+  }
+  if (platform === "meta-ads") {
+    if (input.campaignNameFilter !== undefined && typeof input.campaignNameFilter !== "string") {
+      return { field: "campaignNameFilter", message: "Enter a text campaign filter or leave it empty." };
+    }
+    if (!/^(act_)?\d{10,20}$/.test(String(input.customerId).trim())) {
+      return { field: "customerId", message: "Enter a numeric Meta ad account ID, optionally starting with act_." };
+    }
+    if (!/^v\d{1,3}\.\d$/.test(String(input.apiVersion).trim())) {
+      return { field: "apiVersion", message: "Use the Graph API version shown in your Meta app, in vNN.N format." };
+    }
+    const expiry = Date.parse(String(input.tokenExpiresAt));
+    if (!/(Z|[+-]\d{2}:\d{2})$/i.test(String(input.tokenExpiresAt).trim()) || !Number.isFinite(expiry) || expiry <= Date.now()) {
+      return { field: "tokenExpiresAt", message: "Enter the token's actual future expiry, including timezone." };
+    }
+    if (String(input.campaignNameFilter ?? "").length > 200) {
+      return { field: "campaignNameFilter", message: "Campaign filter must be 200 characters or fewer." };
+    }
+  }
+  if (platform === "google-analytics" && !/^\d{1,20}$/.test(String(input.propertyId).trim())) {
+    return { field: "propertyId", message: "Enter the numeric GA4 property ID, not the G- measurement ID." };
+  }
+  return null;
+}
+
 export type ConnectorFailureCode =
   | "unavailable"
   | "unauthenticated"

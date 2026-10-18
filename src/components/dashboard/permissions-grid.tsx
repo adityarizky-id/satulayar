@@ -52,10 +52,13 @@ export const PermissionsGrid = memo(function PermissionsGrid({
           </span>
         </summary>
         <ul className="permissions-list">
-          {grantedPermissions.map((permission) => (
+          {DASHBOARD_PERMISSIONS.map((permission) => (
             <li key={permission}>
-              <span aria-hidden="true" className="permission-check">✓</span>
+              <span aria-hidden="true" className={`permission-check${hasPermission(activeRole, permission) ? "" : " permission-check--restricted"}`}>
+                {hasPermission(activeRole, permission) ? "✓" : "−"}
+              </span>
               <span>{PERMISSION_LABELS[permission]}</span>
+              {!hasPermission(activeRole, permission) && <span className="permission-restriction">Not included in this role</span>}
             </li>
           ))}
         </ul>

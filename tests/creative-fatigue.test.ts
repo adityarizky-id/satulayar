@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { resolveTableColumnLabels } from "@/components/dashboard/app-frame";
+import { MetaCreativeRadar } from "@/components/campaigns/meta-creative-radar";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 
 import {
   buildMetaCreativeFatigueAnalysis,
@@ -7,6 +11,45 @@ import {
 } from "../src/lib/dashboard/creative-fatigue";
 
 const RANGE = { start: "2026-07-01", end: "2026-07-14" };
+
+test("responsive metric labels retain grouped years and row-spanning campaign headers", () => {
+  assert.deepEqual(resolveTableColumnLabels([
+    [{ label: "Campaign", colSpan: 1, rowSpan: 2 }, { label: "Search", colSpan: 2, rowSpan: 1 }, { label: "Shopping", colSpan: 2, rowSpan: 1 }],
+    [{ label: "Share", colSpan: 1, rowSpan: 1 }, { label: "Lost rank", colSpan: 1, rowSpan: 1 }, { label: "Share", colSpan: 1, rowSpan: 1 }, { label: "Lost rank", colSpan: 1, rowSpan: 1 }],
+  ]), ["Campaign", "Search · Share", "Search · Lost rank", "Shopping · Share", "Shopping · Lost rank"]);
+  assert.deepEqual(resolveTableColumnLabels([
+    [{ label: "Month", colSpan: 1, rowSpan: 2 }, { label: "2026", colSpan: 2, rowSpan: 1 }],
+    [{ label: "Revenue", colSpan: 1, rowSpan: 1 }, { label: "Orders", colSpan: 1, rowSpan: 1 }],
+  ]), ["Month", "2026 · Revenue", "2026 · Orders"]);
+});
+
+test("creative rows retain format, days active and the full recommendation after column consolidation", () => {
+  const fatigue = buildMetaCreativeFatigueAnalysis({ range: RANGE, currency: "USD", metaSpend: 1500, metaImpressions: 45000, metaClicks: 850, metaPurchases: 60, targetCpa: 25 });
+  const html = renderToStaticMarkup(createElement(MetaCreativeRadar, { fatigue, placements: null, currency: "USD" }));
+  for (const ad of fatigue.ads) {
+    assert.ok(html.includes(`ID: ${ad.adId}`));
+    assert.ok(html.includes(`${ad.daysActive} active days in period`));
+    assert.ok(html.includes(ad.recommendedAction));
+  }
+  assert.match(html, /creative-radar-table__recommendation/);
+  assert.match(html, /Action Status/);
+  assert.doesNotMatch(html, /<th[^>]*>Format<\/th>/);
+});
+
+test("creative active days and daily-budget ceiling follow inclusive reporting dates", () => {
+  for (const [range, expected] of [
+    [{ start: "2026-07-14", end: "2026-07-14" }, [1, 1, 1, 1]],
+    [{ start: "2026-07-08", end: "2026-07-14" }, [7, 7, 7, 7]],
+    [RANGE, [14, 14, 14, 7]],
+    [{ start: "2026-06-15", end: "2026-07-14" }, [18, 24, 30, 7]],
+    [{ start: "2026-06-30", end: "2026-07-02" }, [3, 3, 3, 3]],
+  ] as const) {
+    const analysis = buildMetaCreativeFatigueAnalysis({ range, currency: "USD", metaSpend: 350, metaImpressions: 10000, metaPurchases: 10, targetCpa: 25 });
+    assert.deepEqual(analysis.ads.map((ad) => ad.daysActive), expected);
+    if (expected[0] === 14) assert.equal(analysis.adCeilingRecommended, 7);
+    if (expected[0] === 18) assert.equal(analysis.adCeilingRecommended, 3);
+  }
+});
 
 test("buildMetaCreativeFatigueAnalysis flags healthy, warning, and critical fatigue correctly", () => {
   const analysis = buildMetaCreativeFatigueAnalysis({

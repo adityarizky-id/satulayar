@@ -7,10 +7,12 @@ import {
 } from "@/components/dashboard/data-sources-shell";
 import type { LongLivedCredential } from "@/components/dashboard/connector-console";
 import { hasPermission } from "@/lib/auth/authorization";
+import { getAuthConfiguration } from "@/lib/auth/auth-config";
 import { resolveActiveClientSlug } from "@/lib/auth/client-scope";
 import { resolveAuthContext } from "@/lib/auth/session";
 import { resolveGa4PropertyId } from "@/lib/connectors/ga4-sync";
 import { buildConnectorHealthReport } from "@/lib/connectors/health";
+import { OAUTH_PLATFORMS } from "@/lib/connectors/oauth";
 import {
   getLatestConnectorTokenUpdatedAt,
 } from "@/lib/connectors/token-storage";
@@ -30,20 +32,21 @@ const SOURCES: Omit<
     name: "Google Ads",
     purpose: "Paid search and Performance Max",
     testable: true,
-    // Connected per brand from the in-page form, so a brand never waits on the
-    // deployment's environment to be edited. The OAuth route remains for any
-    // caller that still uses it, but the page no longer sends anyone there.
+    // Google consent starts from the per-brand setup dialog; a manual token
+    // remains available for operators using an existing API grant.
     connectMethod: "credentials",
   },
   {
     id: "meta-ads",
     name: "Meta Ads",
     purpose: "Paid social reporting",
+    connectMethod: "credentials",
   },
   {
     id: "google-analytics",
     name: "Google Analytics 4",
     purpose: "Site behaviour and attribution",
+    connectMethod: "credentials",
   },
   {
     id: "google-search-console",
@@ -259,11 +262,37 @@ export default async function DataSourcesPage({
     const record = telemetry?.record ?? null;
     const credential = resolveLongLivedCredential(record);
     const credentialExpired = credential?.state === "expired";
+    const oauth = OAUTH_PLATFORMS[source.id];
+    const settingNames = [
+      "NEXT_PUBLIC_SUPABASE_URL",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      ...(source.connectMethod === "credentials" || !oauth
+        ? []
+        : ["NEXT_PUBLIC_SITE_URL", oauth.envVarKeys.clientId, oauth.envVarKeys.clientSecret]),
+    ];
+    const settings = settingNames.map((name) => ({
+      name,
+      configured: Boolean(process.env[name]?.trim()) ||
+        (source.id === "google-analytics" && name === "GOOGLE_ADS_CLIENT_ID" && Boolean(process.env.GA4_CLIENT_ID?.trim())) ||
+        (source.id === "google-analytics" && name === "GOOGLE_ADS_CLIENT_SECRET" && Boolean(process.env.GA4_CLIENT_SECRET?.trim())),
+    }));
+    let callbackUrl: string | null = null;
+    try {
+      const site = new URL(getAuthConfiguration().siteUrl ?? "");
+      if (site.protocol === "https:" || site.protocol === "http:") {
+        callbackUrl = `${site.origin}/api/connectors/oauth/${source.id}/callback`;
+      }
+    } catch { /* An invalid origin is a setup requirement, never a guessed callback. */ }
+    const originSetting = settings.find((setting) => setting.name === "NEXT_PUBLIC_SITE_URL");
+    if (originSetting) originSetting.configured = Boolean(callbackUrl);
+    const configurationBlocked = !isPlanned && settings.some((setting) => !setting.configured);
 
     return {
       ...source,
       status: isPlanned
         ? "planned"
+        : configurationBlocked
+          ? "error"
         : telemetry?.unavailable
           ? "unverified"
           : credentialExpired
@@ -273,6 +302,8 @@ export default async function DataSourcesPage({
             : "disconnected",
       statusNote: isPlanned
         ? "Not available in this release"
+        : configurationBlocked
+          ? "Deployment configuration required"
         : telemetry?.unavailable
           ? "Connection status can't be checked on this deployment"
           : credentialExpired
@@ -284,6 +315,39 @@ export default async function DataSourcesPage({
       lastSyncedAt: record?.updated_at ?? null,
       targetAccount: record ? resolveTargetAccount(record, clientSlug) : null,
       credential,
+      recovery: configurationBlocked ? "contact-owner" : undefined,
+      setup: {
+        settings,
+        callbackUrl,
+        ...(source.id === "google-ads" || source.id === "google-analytics" ? { oauthDefaults: {
+          clientConfigured: Boolean(oauth?.clientId && oauth?.clientSecret) || Boolean(record),
+          developerTokenConfigured: Boolean(process.env.GOOGLE_ADS_DEVELOPER_TOKEN) || Boolean(record),
+        } } : {}),
+        requirements: source.id === "meta-ads"
+          ? [
+              "Generate an access token in your Meta developer app or Business Settings, with ads_read and read_insights and access to the selected ad account.",
+              "Copy the numeric ad account ID from Ads Manager. The form verifies the exact account and its native currency.",
+              "Copy your app's supported Graph API version and select the token's expiry date from Meta's token debugger. Renew before that date; the form uses the start of that day in your device's timezone.",
+              "Enter a unique campaign-name filter when multiple brands share the ad account. Leave it empty only for a dedicated account.",
+              "Meta does not issue refresh tokens. Renew the access token through this form before it expires. App review requirements still apply to the token's provider app.",
+            ]
+          : source.id === "google-analytics"
+            ? [
+                "Enable the Google Analytics Data API in the Google Cloud project.",
+                "Use Continue with Google to choose an account and approve analytics.readonly. Register the exact callback URL shown in the dialog in your Google Cloud OAuth web client. A configured workspace app can be reused; otherwise enter your own client pair.",
+                "Copy the numeric property ID from Analytics Admin, not the G- measurement ID. This property is stored for the selected brand and used by sync.",
+              ]
+            : [
+                "Prepare this brand's Customer ID and a Google Ads developer token. Add the manager ID when using an MCC. Reuse a configured workspace app or enter your own OAuth client pair.",
+                "Register the exact callback URL shown in the dialog in your Google Cloud OAuth web client. Continue with Google opens the official account and permission screen; Satulayar receives the refresh token automatically and verifies reporting access before saving.",
+                "Verify conversion mappings, native currency, timezone, and the live-sync gate before enabling live reports.",
+              ],
+        documentationUrl: source.id === "meta-ads"
+          ? "https://developers.facebook.com/docs/marketing-api/get-started/"
+          : source.id === "google-analytics"
+            ? "https://developers.google.com/analytics/devguides/reporting/data/v1/quickstart"
+            : "https://developers.google.com/google-ads/api/docs/get-started/introduction",
+      },
     };
   });
 

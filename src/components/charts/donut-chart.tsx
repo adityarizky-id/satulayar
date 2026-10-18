@@ -15,7 +15,7 @@ export interface DonutSlice {
   previousValue?: number;
 }
 
-const RADIUS = 42;
+const RADIUS = 46;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
 export function DonutChart({

@@ -143,8 +143,20 @@ function toStoredRow(
  * known state, not an incident. Everything else fails closed and says why.
  */
 export async function persistGa4Sync(input: Ga4SyncInput): Promise<Ga4SyncResult> {
+  let savedProperty: string | undefined;
+  if (input.clientSlug && !input.propertyId) {
+    try {
+      const { getConnectorToken } = await import("./token-storage");
+      const record = await getConnectorToken("google-analytics", input.clientSlug);
+      if (record?.metadata?.configuredVia === "direct_platform_form") {
+        savedProperty = record.customerId ?? "";
+      }
+    } catch {
+      return { outcome: "skipped", rowsUpserted: 0, propertyTimezone: null, warnings: [], safeMessage: "GA4 credential storage is unavailable; no property was read." };
+    }
+  }
   const propertyId = (
-    input.propertyId ?? resolveGa4PropertyId(input.clientSlug)
+    input.propertyId ?? savedProperty ?? resolveGa4PropertyId(input.clientSlug)
   ).trim();
   if (!propertyId) {
     return {

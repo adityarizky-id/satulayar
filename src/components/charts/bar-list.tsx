@@ -24,12 +24,16 @@ export function BarList({
   /** Names the baseline in the tooltip, e.g. "Same period last year". */
   comparisonLabel = "Previous period",
   className,
+  scale = "maximum",
+  showShare = false,
 }: {
   rows: BarListRow[];
   formatValue: (value: number) => string;
   formatChange: (value: number, previousValue: number) => string;
   comparisonLabel?: string;
   className?: string;
+  scale?: "maximum" | "share";
+  showShare?: boolean;
 }) {
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const max = Math.max(...rows.map((row) => row.value), 1);
@@ -77,10 +81,11 @@ export function BarList({
           activeKey === null ? "" : " bar-list--hovered"
         }`}
       >
-        {rows.map((row) => (
+        {rows.map((row, index) => (
           <li
             className={activeKey === row.key ? "bar-list__row--active" : ""}
             key={row.key}
+            onBlur={() => setActiveKey(null)}
             onFocus={() => setActiveKey(row.key)}
             onMouseEnter={() => setActiveKey(row.key)}
             onMouseLeave={() => setActiveKey(null)}
@@ -88,14 +93,14 @@ export function BarList({
           >
             <div className="bar-list__meta">
               <span className="bar-list__label">{row.label}</span>
-              <span className="bar-list__value">{formatValue(row.value)}</span>
+              <span className="bar-list__value">{showShare && <strong className="bar-list__share">{(row.share * 100).toFixed(1)}% </strong>}{formatValue(row.value)}</span>
             </div>
             <div className="bar-list__track">
               <span
-                className={`bar-list__fill ${
+                className={`bar-list__fill bar-list__fill--${index % 5} ${
                   activeKey === row.key ? "bar-list__fill--active" : ""
                 }`}
-                style={{ width: `${Math.max((row.value / max) * 100, 2)}%` }}
+                style={{ width: `${Math.min(100, Math.max(0, (scale === "share" ? row.share : row.value / max) * 100))}%` }}
               />
             </div>
           </li>

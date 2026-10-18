@@ -20,10 +20,38 @@ The references establish the following visual character:
 
 The old 65/25/10 composition is retired. Color follows hierarchy, meaning, and ambient-light use rather than a fixed screen percentage.
 
+### Google Stitch implementation reference — 17 October 2026
+
+The private **SatuLayar — Faithful UI Replica** suite supplies six desktop page
+pairs in Light and Dark: Paid ads, Store analytics, Worklog, Data sources,
+Account & access, and Sign-in. Use the named primary screens, not earlier drafts.
+Signal Workspace remains the semantic and accessibility contract when generated
+markup introduces unsupported actions, live claims, or different metric meanings.
+
+- A 194px expanded navigation shell stays dark in both themes; the existing
+  collapse preference and mobile drawer remain functional.
+- Use the full available workspace with 24px desktop gutters and 20px section
+  spacing. Operational headings are 24px; page headers stay unframed. Sticky
+  utility and reporting chrome retain the existing restrained frost.
+- The diagnostic snapshot uses a one-third verdict and two-thirds 4×2 metric
+  grid at wide widths. Budget pacing and platform performance each share one
+  bounded section surface. Preserve all existing calculations and controls.
+- Account identity and permissions sit side by side at wide widths. Brand
+  workspaces become a five-card row, then reflow through three, two, and one
+  column. Restricted permissions are explicitly labelled without offering an
+  elevation action or changing authorization.
+- Sign-in uses a 60:40 desktop split, a static two-line headline, a restrained
+  network illustration, and a 420px form card. The left stage stays dark in both
+  themes; the form follows semantic theme surfaces. The preview context is
+  labelled, without invented live metrics, security guarantees, or legal terms.
+- Keep native forms, source status, demo markers, working navigation, keyboard
+  focus, responsive tables, and reduced-motion behavior. Do not replace the
+  application with the generated static HTML or import its placeholder links.
+
 ## Theme behavior
 
 - `light` and `dark` are the only user-facing modes.
-- On a first visit, use the operating-system preference.
+- On a first visit, use Dark. An explicit saved Light or Dark choice takes precedence.
 - Persist an explicit choice in `localStorage` under `satulayar-theme`.
 - Apply the selected mode to `html[data-theme]` before first paint to avoid theme flash.
 - The toggle must appear in the utility bar on every protected application route.
@@ -59,12 +87,64 @@ Raw color values belong only in the primitive/theme token sections of `src/app/g
 | Utility and filter chrome | Translucent white frost | Translucent ink frost |
 | Tooltip/popover | White elevated surface with dark text | Highest graphite surface with light text |
 
-Cards use 14px radii by default. Controls use 9–10px. Pills are reserved for compact status, filters, and toggles. Light cards may use the shared shallow shadow. Dark cards normally use a boundary, not a halo.
+Light cards use 14px radii and controls use 9–10px. The revised Dark workspace uses 6–8px panel corners and 4–5px controls, with 10px workspace cards. Pills are reserved for compact status, filters, and toggles. Light cards may use the shared shallow shadow. Dark cards use a boundary, not a halo.
+
+### Dark reconstruction — 17 October 2026
+
+The approved sequence is Dark dashboard first, then Light, then Sign-in.
+Dark supersedes the previous gradient material and rounded control treatment:
+
+- Flat ink canvas `#080A09`, cards `#0E110F`, secondary surfaces `#121613`,
+  controls `#171C18`, and visible mineral borders `#253028`. Values remain
+  defined in theme tokens; selectors consume semantic roles.
+- Inter and JetBrains Mono for the Store, Worklog, Account and Sources screens;
+  Segoe UI and Consolas for the reference-matched Paid screen. Fonts retain
+  system fallbacks. Restrained heading weight, mono metadata,
+  square status labels, compact sidebar and controls, and distinct table bands.
+- Paid ads follows the Reference matched screen
+  `c42cf7908bef47bb9e1f91852431de75`. Its snapshot and target disclosure share
+  one surface. Aditya subsequently selected the initial Paid draft's circular
+  budget design: a compact ring with rounded ends and a centre percentage,
+  alongside the cycle facts. Amber means ahead of pace, blue behind pace, green
+  on track and red an actual budget breach. The normal lap stops at 100%; the
+  overflow lap and explicit overspend preserve amounts above budget. No budget
+  is N/A, never an invented zero-percent observation. Cycle explanations expand.
+- The user-supplied ZIP supersedes the earlier malformed hosted Store render.
+  Its styled extended `bb1b38d145fd49b5b9bfa441537e4142` screen is now the
+  primary Store reference: graphite cards, compact heading and four KPIs,
+  year legend beside the chart heading, with monthly data inside that card.
+  Existing yearly, RFM, cohort, sales, traffic,
+  catalogue, audience and referrer data remain available.
+- Data sources spans active connectors across the workspace, with Planned
+  and Runtime readiness beside one another when space allows. Missing setup
+  is amber; rejected authorization remains red. No generated provider, timing,
+  isolation or security claims are imported.
+- Worklog retains review-before-publication, accessible forms and real sample
+  labels. Account retains actual roles, permissions, workspace switching and
+  audit state; no fictional session expiry or elevation action is introduced.
+- Light mappings and the existing Sign-in composition remain available;
+  their dedicated reconstruction is pending. Both receive compatibility checks
+  for shared markup changes. Saved theme choices are preserved.
+
+The ZIP correction also moves Paid utility chrome above both sidebar and main
+content. Other routes keep the utility bar beside the sidebar. Desktop Worklog
+shows four changes initially, with all samples and entity/author details still
+expandable; its five-field row and paired textareas reflow on smaller screens.
+The design export's generic `DESIGN.md` is reference material, not authority for
+new product behavior. Screenshots are compared at a common 1280px width because
+the PNG exports use different scale factors. Passing functional checks alone
+does not establish visual fidelity or pixel equality.
+
+RFM uses the reference's compact summary strip and neutral/green/amber surfaces.
+Summary totals follow the selected real segments; AOV is total value divided by
+orders. The existing scored segment areas remain intact rather than inventing
+25 independent customer cells from a generative screenshot. Segment selection,
+metric controls, customer deep dive and export behavior remain available.
 
 ## Typography
 
 - Mode is **Operate**: readability and scanning outrank editorial spectacle.
-- Use the existing workhorse sans stack with `Segoe UI Variable` preferred where available.
+- Use the page-specific workhorse stacks defined above, with system fallbacks.
 - Headings use weight and scale, never gradient text.
 - Data uses the mono stack with tabular numerals.
 - Body text is at least 12px; chart axes and short badges may use 9–10px.
@@ -86,6 +166,26 @@ Growth tone is calculated from the metric's `favorableDirection`, never from the
 For lower-is-better metrics such as CPC, CPA, and CPO, a decrease is favorable and uses favorable styling. For higher-is-better metrics such as revenue, purchases, registrations, and ROAS, an increase is favorable. Red is reserved for a real breach, error, destructive action, or genuinely unfavorable movement.
 
 ## Chart color contract
+
+### Stitch chart geometry and composition
+
+The user's chart fidelity request supersedes the earlier horizontal budget
+meter. Budget circles follow the chosen initial Paid draft, without a decorative
+black endpoint cap or hover scaling. Actual percentages and budget provenance
+remain visible. Shared ring geometry still handles an overflow lap.
+
+Yearly grouped bars use a maximum 10-unit width, 4-unit inter-series gaps,
+small corners and a neutral unfilled plot. The initial view matches the bar-only
+reference; the labelled Orders trend toggle restores the order lines, and exact
+orders remain in the monthly table and tooltip. Partial bars remain faded.
+
+Composition uses green, pale blue, amber and pale violet in that order. Catalogue
+bars, stacked segments and their legends share the same category mapping.
+Horizontal composition bars scale to the share of the whole, rather than making
+the largest category look like 100%. Ranking bars keep their maximum scale.
+Zero values have zero-width/height geometry. Stacked columns use seamless square
+segment joins and 10-unit stems; their plot is 256 units high. Composition donuts
+use the same palette and thinner dark strokes, with readable values and shares.
 
 Chart identity stays stable across pages and themes. Theme variants may change luminance for contrast but never change the series' semantic identity.
 
@@ -121,6 +221,12 @@ Rules:
 - KPI grids use shared boundaries rather than many disconnected floating tiles.
 - Tables use contained horizontal scrolling on small screens. Sticky columns must match the row or header surface.
 - Hover may brighten a row or border but must not move dense data cards.
+- Resting data cards keep their ordinary boundary and shadow on pointer hover;
+  do not apply a halo to every card as the user scans. Keep canvas and operational
+  page headers neutral. Reserve stronger emphasis for selected controls and data.
+- Performance-target editing is a labelled disclosure below the snapshot. The
+  active thresholds remain visible with their metrics; opening the editor is
+  optional during routine reading.
 - A chart and its detailed table may share one section and one filter state. If
   the table is collapsible, use an explicit action label, supporting summary,
   `aria-expanded`, and a directional icon; year toggles must filter both views.
@@ -169,10 +275,36 @@ Atmospheric effects are allowed only when they reinforce hierarchy:
 
 - Verify 1440px, 1024px, 760px, and 390px.
 - No page-level horizontal scrolling.
-- Wide tables may scroll only inside a bounded scroller.
+- Table text wraps; do not force names, headings or recommendations onto one line.
+- Shared table wrappers reflow into labelled metric rows when the workspace is
+  too narrow (900px workspace width for more than seven columns; 680px for smaller tables).
+  Preserve every metric, grouped-header label and native table role. Never hide
+  columns or mask overflow to remove a scrollbar. Before client enhancement,
+  the bounded native scroller remains an accessible fallback.
+- Creative identity includes format and days active; recommendations wrap in
+  the action cell. Small screens show the action across the full row.
+- Insight lists use a fixed 72px badge column and a 12px gap. Headlines,
+  explanation and evidence share one text edge regardless of badge length;
+  the same component owns every insight and recommendation attachment.
+- Remove redundant narrative below section cards. Keep material reporting
+  limits, coverage and comparison notes in an accessible, collapsed disclosure
+  inside a card. Data-origin and unavailable-data markers remain visible.
+- Donut legends stack below the plot when a card cannot fit both comfortably;
+  audit filters wrap and structured details wrap long values.
 - Primary touch targets are at least 44px.
 - Reflow before shrinking essential type.
 - Sticky chrome, popovers, tooltips, and badges remain within the viewport.
+- Utility controls reflow against the available workspace column, including the
+  expanded sidebar, rather than relying only on viewport breakpoints. Scope,
+  operations, and session controls keep separate layout zones. Secondary sync
+  and timezone readouts may step out before essential controls are compressed.
+- Measure utility-bar height with the shared observer and use that value for
+  the sticky reporting picker. Mobile page titles and period details wrap fully.
+- Utility and reporting controls use at least 12px text. Do not reduce the font
+  size to force all utility controls into one row.
+- Worklog uses a compact operational heading and secondary styling for repeated
+  row actions. Account section shortcuts have explicit spacing and focus states.
+- The sign-in headline stays static while a person reads or enters credentials.
 
 ## Runtime implementation contract
 

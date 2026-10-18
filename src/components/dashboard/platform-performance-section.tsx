@@ -142,7 +142,7 @@ export const PlatformPerformanceSection = memo(
     return (
       <section
         aria-labelledby="platform-title"
-        className="section section--dense"
+        className="section section--dense section--surface"
         id="platform-performance"
       >
         <div className="section-heading section-heading--compact">

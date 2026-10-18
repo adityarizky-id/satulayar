@@ -322,6 +322,23 @@ export async function listActiveConnectorCustomerIds(
     }));
 }
 
+/** Server-only projection used by Meta's account and campaign-isolation checks. */
+export async function listActiveMetaAccountConfigurations(platform = "meta-ads") {
+  if (platform !== "meta-ads") throw new Error("Unsupported Meta configuration scope.");
+  const { data, error } = await createServiceClient().from("connector_tokens")
+    .select("client_slug, customer_id, metadata").eq("platform", "meta-ads").eq("status", "active");
+  if (error) throw new Error("Meta account configuration is unavailable.");
+  return ((data ?? []) as { client_slug: string; customer_id: string | null; metadata: Record<string, unknown> | null }[]).map((row) => ({
+    clientSlug: row.client_slug,
+    customerId: row.customer_id,
+    ...(row.metadata?.configuredVia === "direct_platform_form" ? {
+      campaignFilter: typeof row.metadata.campaignFilter === "string" ? row.metadata.campaignFilter : "",
+      campaignPrefixes: [] as string[],
+      apiVersion: typeof row.metadata.apiVersion === "string" ? row.metadata.apiVersion : undefined,
+    } : {}),
+  }));
+}
+
 /**
  * Last verified Google Ads account id carried by each brand's persisted rows.
  *

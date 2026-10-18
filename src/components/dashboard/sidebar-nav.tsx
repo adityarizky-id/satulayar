@@ -430,7 +430,7 @@ export function SidebarNav({
   /** Fires on any nav click; closes the mobile drawer after navigating. */
   onNavigate?: () => void;
 }) {
-  const [expanded, setExpanded] = useState<string | null>(activeHref);
+  const [expanded, setExpanded] = useState<string | null>(activeHref === "/" || activeHref === "/store-analytics" ? activeHref : null);
 
   // Arriving from another page with a hash should land the same way a click
   // does, not at the browser's default top-of-element position.

@@ -323,7 +323,7 @@ export class MetaAdsApiClient implements ReadOnlyAdsConnector {
   }
 
   private get campaignFilter(): string {
-    return this.config.campaignNameFilter?.trim() || DEFAULT_CAMPAIGN_FILTER;
+    return this.config.campaignNameFilter?.trim() ?? DEFAULT_CAMPAIGN_FILTER;
   }
 
   /** Non-empty only for a brand configured with campaign-code prefixes. */

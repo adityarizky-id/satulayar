@@ -199,6 +199,10 @@ export function GoogleAudienceSection({
           formatValue={(value) => currencyFormatter.format(value)}
           rows={segmentRows}
         />
+        <details className="card-notes">
+          <summary>Audience reporting notes</summary>
+          <p>{analysis.safeMessage}</p>
+        </details>
       </article>
 
       <div className="table-scroller">
@@ -251,7 +255,6 @@ export function GoogleAudienceSection({
         </table>
       </div>
 
-      <p className="semantic-note">{analysis.safeMessage}</p>
     </section>
   );
 }

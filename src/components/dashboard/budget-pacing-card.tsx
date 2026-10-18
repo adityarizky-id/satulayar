@@ -2,7 +2,8 @@
 
 import { memo, useState } from "react";
 
-import { ProgressRing, type RingTone } from "@/components/charts/progress-ring";
+import { ProgressRing } from "@/components/charts/progress-ring";
+
 import { GoogleAdsIcon, MetaAdsIcon } from "@/components/dashboard/icons";
 import {
   normaliseBudgets,
@@ -35,7 +36,7 @@ function currencyFormatterFor(currency: Currency): Intl.NumberFormat {
   return formatter;
 }
 
-function ringToneFor(row: PlatformPacing): RingTone {
+function pacingToneFor(row: PlatformPacing) {
   if (row.status === "no-budget") return "unavailable";
   if (row.remainingBudget < 0) return "overspending";
   if (row.status === "underspending") return "underspending";
@@ -97,7 +98,7 @@ const PlatformPacingCard = memo(function PlatformPacingCard({
 }) {
   const format = currencyFormatterFor(currency);
   const percentOfBudget =
-    row.monthlyBudget > 0 ? Math.round(row.actualProgress * 100) : null;
+    row.monthlyBudget > 0 ? Math.round(row.actualProgress * 1000) / 10 : null;
   const overspend =
     row.remainingBudget < 0 ? Math.abs(row.remainingBudget) : 0;
   const hasReachedBudget =
@@ -105,7 +106,7 @@ const PlatformPacingCard = memo(function PlatformPacingCard({
 
   return (
     <article
-      className={`pacing-card${overspend > 0 ? " pacing-card--over-budget" : ""}`}
+      className={`pacing-card pacing-card--${pacingToneFor(row)}${overspend > 0 ? " pacing-card--over-budget" : ""}`}
     >
       <header className="pacing-card__head">
         <span className="pacing-card__name">
@@ -135,17 +136,25 @@ const PlatformPacingCard = memo(function PlatformPacingCard({
       </header>
 
       <div className="pacing-card__body">
-        <ProgressRing
-          ariaLabel={`${row.platform === "meta" ? "Meta" : "Google"} has spent ${format.format(
-            row.spentToDate,
-          )} of its agreed ${format.format(
-            row.monthlyBudget,
-          )} budget for this reporting cycle, on day ${row.daysElapsed} of ${cycleDays}`}
-          centreValue={percentOfBudget === null ? "N/A" : `${percentOfBudget}%`}
-          progress={row.actualProgress}
-          showProgressMarker={row.monthlyBudget > 0}
-          tone={ringToneFor(row)}
-        />
+        <div
+          aria-label={`${row.platform === "meta" ? "Meta" : "Google"} cycle budget used`}
+          aria-valuemax={100}
+          aria-valuemin={0}
+          aria-valuenow={percentOfBudget === null ? undefined : Math.min(100, Math.max(0, percentOfBudget))}
+          aria-valuetext={percentOfBudget === null ? "No budget set" : `${percentOfBudget}% used. ${format.format(row.spentToDate)} of ${format.format(row.monthlyBudget)}; ${PLAN_SOURCE_LABEL[planSource]}. Day ${row.daysElapsed} of ${cycleDays}.${overspend > 0 ? ` ${format.format(overspend)} over budget.` : ""}`}
+          className="pacing-card__ring"
+          role="progressbar"
+        >
+          <ProgressRing
+            ariaLabel={percentOfBudget === null ? "No budget set" : `${percentOfBudget}% of cycle budget`}
+            centreLabel="of cycle"
+            centreValue={percentOfBudget === null ? "N/A" : `${percentOfBudget}%`}
+            progress={percentOfBudget === null ? 0 : row.actualProgress}
+            showProgressMarker={false}
+            tone={pacingToneFor(row)}
+          />
+          {overspend > 0 && <span className="pacing-card__overflow">{format.format(overspend)} over cycle budget</span>}
+        </div>
 
         {/*
           One agreed figure, measured over one period. The budget is what the
@@ -163,15 +172,7 @@ const PlatformPacingCard = memo(function PlatformPacingCard({
               <small>{PLAN_SOURCE_LABEL[planSource]}</small>
             </dd>
           </div>
-          <div>
-            <dt>Spent this cycle</dt>
-            <dd>
-              {format.format(row.spentToDate)}{" "}
-              <small>
-                over {row.daysElapsed}/{cycleDays} days
-              </small>
-            </dd>
-          </div>
+          <div><dt>Spent so far</dt><dd>{format.format(row.spentToDate)}</dd></div>
           <div>
             <dt>{overspend > 0 ? "Over budget by" : "Left in cycle"}</dt>
             <dd>
@@ -210,7 +211,10 @@ const PlatformPacingCard = memo(function PlatformPacingCard({
         </dl>
       </div>
 
-      <p className="pacing-card__note">{row.safeMessage}</p>
+      <details className="pacing-card__note">
+        <summary>Cycle pacing details</summary>
+        <p>{row.safeMessage}</p>
+      </details>
     </article>
   );
 });
@@ -244,7 +248,7 @@ export const BudgetPacingCard = memo(function BudgetPacingCard({
   return (
     <section
       aria-labelledby="budget-pacing-title"
-      className="section section--dense"
+      className="section section--dense section--surface"
       id="budget-pacing"
     >
       <div className="section-heading section-heading--compact">

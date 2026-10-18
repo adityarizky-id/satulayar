@@ -75,11 +75,13 @@ function TargetGauge({
   status,
   target,
   value,
+  direction,
 }: {
   label: string;
   status: GuardrailStatus;
   target: number;
   value: number;
+  direction: SnapshotStat["favorableDirection"];
 }) {
   const percent = target <= 0 ? 0 : Math.round((value / target) * 100);
   const style = {
@@ -88,11 +90,11 @@ function TargetGauge({
 
   return (
     <span
-      aria-label={`${label} is ${percent}% of its target limit.`}
+      aria-label={`${label} is ${percent}% of its ${direction === "higher" ? "minimum target" : "target limit"}.`}
       className={`snapshot-gauge snapshot-gauge--${status}`}
     >
       <span aria-hidden="true" className="snapshot-gauge__track" style={style} />
-      <span className="snapshot-gauge__label">{percent}% of limit</span>
+      <span className="snapshot-gauge__label">{percent}% of {direction === "higher" ? "target" : "limit"}</span>
     </span>
   );
 }
@@ -191,6 +193,7 @@ export const SnapshotCard = memo(function SnapshotCard({
         : null,
       unit: "percent",
       favorableDirection: "higher",
+      showTargetGauge: true,
       ...costCheck(
         "conversionRate",
         `≥ ${(snapshot.guardrail.targets.conversionRate * 100).toFixed(1)}%`,
@@ -293,7 +296,7 @@ export const SnapshotCard = memo(function SnapshotCard({
                   </span>
                 )}
                 {stat.provenanceNote && (
-                  <span className="delta delta--neutral">{stat.provenanceNote}</span>
+                  <span className="delta delta--neutral delta--provenance">{stat.provenanceNote}</span>
                 )}
               </dd>
               {stat.targetLabel && (
@@ -304,6 +307,7 @@ export const SnapshotCard = memo(function SnapshotCard({
                 stat.targetValue !== undefined &&
                 stat.value !== null && (
                   <TargetGauge
+                    direction={stat.favorableDirection}
                     label={stat.label}
                     status={stat.status}
                     target={stat.targetValue}

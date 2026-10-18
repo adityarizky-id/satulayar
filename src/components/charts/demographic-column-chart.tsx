@@ -56,7 +56,7 @@ export function DemographicColumnChart({
   const plotWidth = WIDTH - PADDING_X * 2;
   const plotHeight = HEIGHT - PADDING_TOP - PADDING_BOTTOM;
   const slotWidth = ageGroups.length === 0 ? plotWidth : plotWidth / ageGroups.length;
-  const barWidth = Math.min(34, Math.max(14, slotWidth * 0.32));
+  const barWidth = Math.min(10, Math.max(4, slotWidth * 0.18));
   const barGap = 4;
 
   function slotCentre(index: number) {
@@ -150,12 +150,12 @@ export function DemographicColumnChart({
                     }${focusSeries === "female" ? " demographic-bar--focus" : ""}${
                       focusSeries === "male" ? " demographic-bar--dimmed" : ""
                     }`}
-                    height={Math.max(femaleHeight, 2)}
-                    rx={4}
-                    ry={4}
+                    height={Math.max(femaleHeight, 0)}
+                    rx={1.5}
+                    ry={1.5}
                     width={barWidth}
                     x={femaleX}
-                    y={PADDING_TOP + plotHeight - Math.max(femaleHeight, 2)}
+                    y={PADDING_TOP + plotHeight - Math.max(femaleHeight, 0)}
                   />
 
                   {/* Male Bar */}
@@ -165,12 +165,12 @@ export function DemographicColumnChart({
                     }${focusSeries === "male" ? " demographic-bar--focus" : ""}${
                       focusSeries === "female" ? " demographic-bar--dimmed" : ""
                     }`}
-                    height={Math.max(maleHeight, 2)}
-                    rx={4}
-                    ry={4}
+                    height={Math.max(maleHeight, 0)}
+                    rx={1.5}
+                    ry={1.5}
                     width={barWidth}
                     x={maleX}
-                    y={PADDING_TOP + plotHeight - Math.max(maleHeight, 2)}
+                    y={PADDING_TOP + plotHeight - Math.max(maleHeight, 0)}
                   />
                 </g>
               );
@@ -252,7 +252,12 @@ export function DemographicColumnChart({
           </button>
         </div>
 
-        {footnote && <p className="semantic-note text-center mt-3">{footnote}</p>}
+        {footnote && (
+          <details className="card-notes">
+            <summary>Demographic coverage</summary>
+            <p>{footnote}</p>
+          </details>
+        )}
       </div>
     </div>
   );

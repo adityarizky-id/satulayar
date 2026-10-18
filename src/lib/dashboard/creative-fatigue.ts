@@ -6,6 +6,7 @@ import type {
   MetaPlacementAnalysis,
   MetaPlacementBreakdownRow,
 } from "@/lib/dashboard/types";
+import { inclusiveDays } from "@/lib/dashboard/calendar";
 
 /**
  * Builds the Creative Fatigue & Lifecycle Radar for Meta Ads.
@@ -23,6 +24,7 @@ export function buildMetaCreativeFatigueAnalysis(input: {
 }): MetaCreativeFatigueAnalysis {
   const { metaSpend, metaImpressions, metaPurchases } = input;
   const targetCpa = input.targetCpa ?? 28;
+  const periodDays = inclusiveDays(input.range);
 
   if (metaSpend <= 0 || metaImpressions <= 0) {
     return {
@@ -44,7 +46,7 @@ export function buildMetaCreativeFatigueAnalysis(input: {
   }
 
   // Recommended ad-count ceiling = (daily budget * 14) / (2 * TCPL)
-  const dailySpend = metaSpend / 14;
+  const dailySpend = metaSpend / periodDays;
   const adCeilingRecommended = Math.max(3, Math.min(10, Math.round((dailySpend * 14) / (2 * targetCpa))));
 
   const ads: MetaCreativeHealthRow[] = [
@@ -52,7 +54,8 @@ export function buildMetaCreativeFatigueAnalysis(input: {
       adId: "ad-meta-01",
       adName: "UGC Product Showcase — Drip Bag & Beans",
       format: "video_reels",
-      daysActive: 18,
+      // Demo delivery durations are bounded to the selected reporting window.
+      daysActive: Math.min(18, periodDays),
       spend: Math.round(metaSpend * 0.38),
       impressions: Math.round(metaImpressions * 0.40),
       frequency: 2.1,
@@ -70,7 +73,7 @@ export function buildMetaCreativeFatigueAnalysis(input: {
       adId: "ad-meta-02",
       adName: "Lifestyle Carousel — Best-selling Jamu Trio",
       format: "carousel",
-      daysActive: 24,
+      daysActive: Math.min(24, periodDays),
       spend: Math.round(metaSpend * 0.28),
       impressions: Math.round(metaImpressions * 0.26),
       frequency: 2.9,
@@ -88,7 +91,7 @@ export function buildMetaCreativeFatigueAnalysis(input: {
       adId: "ad-meta-03",
       adName: "Static Minimalist — Starter Pack Offer & Fast Dispatch",
       format: "static",
-      daysActive: 38,
+      daysActive: Math.min(38, periodDays),
       spend: Math.round(metaSpend * 0.22),
       impressions: Math.round(metaImpressions * 0.20),
       frequency: 4.2,
@@ -106,7 +109,7 @@ export function buildMetaCreativeFatigueAnalysis(input: {
       adId: "ad-meta-04",
       adName: "Founder Angle — Handmade Quality & Eco-friendly Story",
       format: "video_reels",
-      daysActive: 7,
+      daysActive: Math.min(7, periodDays),
       spend: Math.round(metaSpend * 0.12),
       impressions: Math.round(metaImpressions * 0.14),
       frequency: 1.4,

@@ -253,7 +253,6 @@ export function MetaAudienceSection({
         </table>
       </div>
 
-      <p className="semantic-note">{analysis.safeMessage}</p>
     </section>
   );
 }

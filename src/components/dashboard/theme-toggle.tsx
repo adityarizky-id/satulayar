@@ -11,7 +11,7 @@ function isDashboardTheme(value: string | null): value is DashboardTheme {
 }
 
 function preferredTheme(): DashboardTheme {
-  if (typeof window === "undefined") return "light";
+  if (typeof window === "undefined") return "dark";
 
   try {
     const stored = window.localStorage.getItem(DASHBOARD_THEME_STORAGE_KEY);
@@ -20,9 +20,7 @@ function preferredTheme(): DashboardTheme {
     // Storage can be unavailable in hardened or private browser contexts.
   }
 
-  return window.matchMedia("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light";
+  return "dark";
 }
 
 function applyTheme(theme: DashboardTheme) {

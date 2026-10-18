@@ -52,6 +52,97 @@ Platform API ──(read-only connector)──> sync job ──> Supabase tables
 - Demo data is always labelled as preview data. It is never presented as real performance.
 - Never paste real client data, customer records, or account ids into fixtures or tests.
 
+## Setup and recovery interaction contract
+
+Every active connector must provide a server-derived setup description on Data
+sources. This applies to future connectors before they leave the Planned group:
+
+- Expose required setting **names and presence booleans only**, provider/account
+  prerequisites, the exact callback built from the configured site origin, and
+  the provider documentation link. Never serialize credential values.
+- Missing deployment configuration shows `Config required` and opens **View setup
+  requirements** in the shared modal. Viewers may read the checklist; mutation
+  permissions stay enforced separately. Do not offer re-authorization or a
+  success confirmation while deployment prerequisites are missing.
+- Separate authorization readiness from reporting readiness: account mapping,
+  currency/timezone, event mapping, token lifecycle and the runtime live-sync
+  gate still need verification. A present setting is labelled unvalidated.
+- Credential-form connectors need server storage, but do not require deployment
+  OAuth credentials or a callback. OAuth connectors use the same origin resolution
+  as authentication, including its supported Vercel fallback.
+- A `connected=...&status=success` return URL is not connection evidence. The row
+  must also have a server-confirmed active credential and no configuration block.
+  An OAuth error takes precedence over a simultaneous success parameter.
+- Pass the selected brand explicitly into authorization, testing and disconnect
+  requests. Planned connectors expose no authorization or credential mutation.
+
+The shared checklist currently covers Google Ads, Meta Ads and GA4. Adding a
+connector requires its own setting names, permissions, account mapping, recovery
+steps and regression coverage; do not reuse another provider's checklist.
+
+### Self-service credential forms
+
+Editors and administrators use **Configure connection** on Data sources. Each
+active platform has its own fields and provider instructions:
+
+| Platform | Form input | Verified and persisted |
+|---|---|---|
+| Google Ads | Customer ID, developer token, optional manager ID; Google consent receives the refresh token automatically. Reuse the workspace OAuth app or enter a client pair under OAuth app settings. Manual API grants remain available. | Existing direct API verification and per-brand credential storage |
+| Meta Ads | Ad account ID, access token, app-supported Graph API version, expiry date from a native calendar, optional campaign-name filter | Exact account and native currency, reporting permission, then token and brand-specific campaign scope/API version |
+| GA4 | Numeric property ID and Google consent; workspace OAuth app or a matching client pair. Manual refresh-token entry remains available. | Read-only report probe, then property and OAuth pair used together by sync |
+
+Platform details are stored server-side in the existing service-role-only
+`connector_tokens` table. No deployment environment edit or redeploy is required
+to enter or replace them. Secrets are never returned to the form, response, or
+audit log; closing a form clears its input. Login autofill is discouraged using
+new-password semantics on secret fields and password-manager exclusion hints.
+
+The database URL/worker secret and authenticated deployment are installation
+prerequisites, not per-platform form inputs. A missing installation prerequisite
+is shown explicitly; a deployed preview identity cannot save credentials. Mock
+mode and live-sync policy remain separate from successful API authorization.
+Saving credentials never silently enables live ingestion or changes campaigns.
+
+Meta's date picker uses the device timezone and sends the start of the selected
+day as an ISO timestamp. This conservative renewal cutoff does not extend a
+token beyond its unknown expiry time within that day. Past dates and today
+require renewal before connecting; users never need to type an ISO timestamp.
+
+New platforms must register a form schema, server-side validation/probe,
+brand-scoped storage and runtime reader before leaving Planned. The endpoint
+rejects unsupported platforms and uses only fixed provider origins.
+
+### Connection popup contract
+
+Every active connector shares a platform-branded progress surface: authorize or
+check credentials, verify reporting, then save. Success appears only after the
+server confirms verification and storage; it auto-closes after 1.8 seconds.
+Errors remain actionable. Escape or Stop waiting closes the local surface;
+neither action claims to revoke a grant or undo a request already accepted.
+Future connectors must use the same status contract before leaving Planned.
+
+Google Ads and GA4 open the official Google account/consent window from
+**Continue with Google**. They request their own scopes, offline access and
+account selection. Google Ads has Google's standard `adwords` scope; the
+application still only performs reporting reads. GA4 requests `analytics.readonly`.
+The operator must register the displayed exact callback in the selected Google
+Cloud OAuth web client. Provider app setup/review remains a prerequisite.
+See [Google's web-server OAuth flow](https://developers.google.com/identity/protocols/oauth2/web-server).
+
+The POST authorize bootstrap validates role, brand, origin and storage before
+opening consent. Draft application settings are encrypted/authenticated in a
+15-minute httpOnly, SameSite cookie, bound to the initiating user, brand and
+random CSRF state. No draft credential replaces an active row. The callback
+checks the same binding, requires an ongoing grant and checks reported scopes,
+then reuses the credential endpoint's provider probe and persistence checks.
+Only a safe summary enters the encrypted result cookie. Parent polling checks
+the attempt and user/brand binding, so Google COOP restrictions on the opener
+do not turn a closed window or a client message into connection evidence.
+The Google return window also auto-closes after confirmed success; failures
+provide a manual Close action. Blocked popups and unconfirmed results give
+explicit recovery instructions. No Composio dependency or external auth broker
+is introduced.
+
 ## Known limits
 
 - Demo brands report in **USD**. The `Currency` type already accepts `IDR`, `SGD`, and `MYR`, but fixture values are scaled for USD; IDR demo data needs a currency-aware fixture scale.

@@ -2,6 +2,24 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { BarList } from "../src/components/charts/bar-list";
+
+test("composition bars show their share of the whole and give zero no visible fill", () => {
+  const markup = renderToStaticMarkup(createElement(BarList, {
+    rows: [
+      { key: "coffee", label: "Coffee", value: 42, previousValue: null, share: 0.42 },
+      { key: "none", label: "No sales", value: 0, previousValue: null, share: 0 },
+    ],
+    formatValue: String,
+    formatChange: () => "No comparison",
+    scale: "share",
+    showShare: true,
+  }));
+  assert.match(markup, /width:42%/);
+  assert.match(markup, /width:0%/);
+  assert.match(markup, /42\.0%/);
+  assert.doesNotMatch(markup, /width:100%/);
+});
 
 import {
   buildStackedSegmentTooltip,
@@ -643,8 +661,8 @@ test("the stacked chart aligns the full calendar axis with its bar clusters", ()
   const januaryCentre = getStackedMonthCentre(0, 12);
   const decemberCentre = getStackedMonthCentre(11, 12);
 
-  assert.match(markup, new RegExp(`x="${januaryCentre}" y="294">Jan<\\/text>`));
-  assert.match(markup, new RegExp(`x="${decemberCentre}" y="294">Dec<\\/text>`));
+  assert.match(markup, new RegExp(`x="${januaryCentre}" y="250">Jan<\\/text>`));
+  assert.match(markup, new RegExp(`x="${decemberCentre}" y="250">Dec<\\/text>`));
   assert.equal(januaryCentre, 52 + (960 - 52 - 16) / 12 / 2);
   assert.equal(decemberCentre, 52 + ((960 - 52 - 16) / 12) * 11.5);
   assert.match(markup, /Sep.*Dec are future months, not zero sales/);

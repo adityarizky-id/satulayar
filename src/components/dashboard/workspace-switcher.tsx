@@ -7,7 +7,7 @@ import type { AccountOption } from "@/lib/dashboard/accounts";
 
 /**
  * Demo brands are fictional and ship without logo files, so every workspace
- * renders the initials fallback. Add an entry here when a real workspace
+ * renders a product-category pictogram. Add an entry here when a real workspace
  * uploads its logo.
  */
 const WORKSPACE_LOGOS: Record<string, { src: string; alt: string }> = {};
@@ -25,11 +25,9 @@ const WORKSPACE_MARKETS: Record<
 
 const WorkspaceLogo = memo(function WorkspaceLogo({
   account,
-  marketCode,
   marketName,
 }: {
   account: AccountOption;
-  marketCode: string;
   marketName: string;
 }) {
   const [imageFailed, setImageFailed] = useState(false);
@@ -38,11 +36,17 @@ const WorkspaceLogo = memo(function WorkspaceLogo({
   if (!logo || imageFailed) {
     return (
       <span
-        aria-label={`${account.name} logo unavailable; ${marketName} workspace`}
+        aria-label={`${account.name} workspace icon; ${marketName}`}
         className="workspace-logo workspace-logo--fallback"
         role="img"
       >
-        <span aria-hidden="true">{marketCode}</span>
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          {account.slug === "kopi-senja" ? <><path d="M4 8h12v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5Z"/><path d="M16 9h2a3 3 0 0 1 0 6h-2M3 22h15M7 2v2m4-2v2"/></>
+            : account.slug === "batik-lestari" ? <path d="m8 3 4 2 4-2 5 5-3 3-2-2v12H8V9l-2 2-3-3Z"/>
+            : account.slug === "rumah-rajut" ? <><path d="m5 19 14-14M3 13 13 3M11 21l10-10M3 5l2-2m14 18 2-2"/><rect x="2" y="2" width="20" height="20" rx="5"/></>
+            : account.slug === "jamu-alami" ? <><path d="M12 22V10M12 16C4 16 2 11 3 6c6 0 9 4 9 10Zm0 2c8 0 10-5 9-10-6 0-9 4-9 10ZM12 12c-5-4-3-8 0-11 3 3 5 7 0 11Z"/></>
+            : <><path d="m3 8 4-5h10l4 5-9 13ZM3 8h18M7 3l5 18 5-18M7 8l5-5 5 5"/></>}
+        </svg>
       </span>
     );
   }
@@ -83,7 +87,6 @@ const WorkspaceRow = memo(function WorkspaceRow({
     <li className={`workspace-row${isActive ? " workspace-row--active" : ""}`}>
       <WorkspaceLogo
         account={account}
-        marketCode={market.code}
         marketName={market.market}
       />
       <div className="workspace-row__identity">
@@ -162,7 +165,7 @@ export const WorkspaceSwitcher = memo(function WorkspaceSwitcher({
     >
       <header className="workspace-console__header">
         <div>
-          <h2 id="workspace-switcher-title">Workspace access</h2>
+          <h2 id="workspace-switcher-title">Brand workspaces</h2>
           <p>One selection controls Paid Ads, Store Analytics, and Worklog.</p>
         </div>
         <div className="workspace-console__meta">

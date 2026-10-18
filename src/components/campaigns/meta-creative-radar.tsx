@@ -60,7 +60,7 @@ export function MetaCreativeRadar({
                 {fatigue.activeAdsCount} / {fatigue.adCeilingRecommended} max
               </span>
             </div>
-            <div style={{ display: "flex", gap: "6px" }}>
+            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
               <span className="fatigue-pill fatigue-pill--healthy">
                 ● {fatigue.healthyCount} Healthy
               </span>
@@ -105,12 +105,12 @@ export function MetaCreativeRadar({
 
         {/* CREATIVE RADAR TABLE */}
         <div className="table-scroller">
-          <table>
+          <table className="creative-radar-table">
+            <caption className="visually-hidden">Active Meta creatives, delivery metrics and recommended actions</caption>
+            <colgroup><col className="creative-radar-table__identity" /><col span={7} /><col className="creative-radar-table__action" /></colgroup>
             <thead>
               <tr>
                 <th scope="col">Active Ad Creative</th>
-                <th scope="col">Format</th>
-                <th scope="col" style={{ textAlign: "right" }}>Days Active</th>
                 <th scope="col" style={{ textAlign: "right" }}>Frequency</th>
                 <th scope="col" style={{ textAlign: "right" }}>CTR (7d Δ)</th>
                 <th scope="col" style={{ textAlign: "right" }}>CPM (7d Δ)</th>
@@ -133,20 +133,8 @@ export function MetaCreativeRadar({
                         {ad.adName}
                       </div>
                       <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
-                        ID: {ad.adId}
+                        ID: {ad.adId} · {ad.format === "video_reels" ? "Video / Reels" : ad.format === "carousel" ? "Carousel" : "Static"} · {ad.daysActive} active {ad.daysActive === 1 ? "day" : "days"} in period
                       </div>
-                    </td>
-                    <td>
-                      <span className="rfm-action-card__badge">
-                        {ad.format === "video_reels"
-                          ? "🎬 Video / Reels"
-                          : ad.format === "carousel"
-                            ? "🖼️ Carousel"
-                            : "📄 Static"}
-                      </span>
-                    </td>
-                    <td style={{ textAlign: "right", fontFamily: "var(--font-mono, monospace)", color: "var(--text-secondary)" }}>
-                      {ad.daysActive}d
                     </td>
                     <td style={{ textAlign: "right", fontFamily: "var(--font-mono, monospace)", fontWeight: 800 }}>
                       <span
@@ -213,7 +201,7 @@ export function MetaCreativeRadar({
                       {ad.roas !== null ? `${ad.roas.toFixed(1)}×` : "—"}
                     </td>
                     <td>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                      <div className="creative-radar-table__recommendation">
                         <span
                           className={`fatigue-pill ${
                             isHealthy
@@ -225,7 +213,7 @@ export function MetaCreativeRadar({
                         >
                           {isHealthy ? "● Healthy" : isWarning ? "▲ Warning" : "✖ Critical"}
                         </span>
-                        <span style={{ fontSize: "11px", color: "var(--text-secondary)", maxWidth: "220px", lineHeight: 1.3 }}>
+                        <span className="creative-radar-table__action-copy">
                           {ad.recommendedAction}
                         </span>
                       </div>
@@ -259,9 +247,9 @@ export function MetaCreativeRadar({
             </span>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "16px", marginTop: "14px" }}>
+          <div className="creative-retention-grid">
             <div style={{ background: "var(--surface-card)", border: "1px solid var(--sl-border)", borderRadius: "10px", padding: "14px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px" }}>
+              <div className="creative-retention-grid__heading">
                 <span style={{ color: "var(--text-secondary)", fontWeight: 600 }}>3-Second Hook Rate</span>
                 <strong style={{ fontFamily: "var(--font-mono, monospace)", color: "var(--status-positive-fg)" }}>
                   {fatigue.videoEngagement.hookRate}% (Benchmark &gt; 25%)
@@ -279,7 +267,7 @@ export function MetaCreativeRadar({
             </div>
 
             <div style={{ background: "var(--surface-card)", border: "1px solid var(--sl-border)", borderRadius: "10px", padding: "14px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px" }}>
+              <div className="creative-retention-grid__heading">
                 <span style={{ color: "var(--text-secondary)", fontWeight: 600 }}>ThruPlay Hold Rate</span>
                 <strong style={{ fontFamily: "var(--font-mono, monospace)", color: "var(--brand-meta-fg)" }}>
                   {fatigue.videoEngagement.holdRate}% (Benchmark &gt; 15%)

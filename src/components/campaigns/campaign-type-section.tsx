@@ -190,6 +190,10 @@ export function CampaignTypeSection({
       </header>
 
       <InsightAttachment brief={advisory} scope="Campaign types" />
+      <details className="panel card-notes">
+        <summary>Campaign reporting notes</summary>
+        <p>{analysis.safeMessage}</p>
+      </details>
 
       <div className="type-board">
         {analysis.rows.map((row) => {
@@ -484,7 +488,6 @@ export function CampaignTypeSection({
         })}
       </div>
 
-      <p className="semantic-note">{analysis.safeMessage}</p>
     </section>
   );
 }

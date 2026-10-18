@@ -404,7 +404,10 @@ export const CustomerJourneyRail = memo(function CustomerJourneyRail({
         ))}
       </div>
       {snapshot.conversionCaveat && (
-        <p className="semantic-note">{snapshot.conversionCaveat}</p>
+        <details className="panel card-notes">
+          <summary>Conversion reporting notes</summary>
+          <p>{snapshot.conversionCaveat}</p>
+        </details>
       )}
     </section>
   );

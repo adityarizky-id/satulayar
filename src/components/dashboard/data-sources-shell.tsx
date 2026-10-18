@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { AppFrame } from "@/components/dashboard/app-frame";
@@ -19,7 +19,7 @@ import { ConnectorRuntimePanel } from "@/components/dashboard/connector-runtime-
 import { hasPermission } from "@/lib/auth/authorization";
 import type { DashboardViewer } from "@/lib/auth/types";
 import type { ConnectorHealthReport } from "@/lib/connectors/health";
-import { OAUTH_PLATFORMS } from "@/lib/connectors/oauth";
+import type { DirectConnectorPlatform } from "@/lib/connectors/types";
 
 export type { DataSourceCard } from "@/components/dashboard/connector-console";
 
@@ -28,6 +28,11 @@ interface ConsoleNotice {
   title: string;
   message: string;
 }
+
+const OAUTH_PLATFORMS: Record<string, { name: string }> = {
+  "google-ads": { name: "Google Ads" }, "meta-ads": { name: "Meta Ads" },
+  "google-analytics": { name: "Google Analytics 4" },
+};
 
 interface SearchParamReader {
   get(name: string): string | null;
@@ -73,17 +78,25 @@ function credentialFormSourceIds(sources: readonly DataSourceCard[]): Set<string
   );
 }
 
-function readOAuthNotice(
+export function readOAuthNotice(
   searchParams: SearchParamReader,
   credentialFormSources: ReadonlySet<string> = new Set(),
+  sources: readonly DataSourceCard[] = [],
 ): ConsoleNotice | null {
   const connectedPlatform = searchParams.get("connected");
   const oauthStatus = searchParams.get("status");
   const oauthError = searchParams.get("oauth_error");
   const errorPlatform = searchParams.get("platform") ?? "google-ads";
 
-  if (connectedPlatform && oauthStatus === "success") {
-    const platformName = OAUTH_PLATFORMS[connectedPlatform]?.name ?? connectedPlatform;
+  if (connectedPlatform && oauthStatus === "success" && !oauthError) {
+    const platformName = OAUTH_PLATFORMS[connectedPlatform]?.name ?? "The connector";
+    if (!sources.some((source) => source.id === connectedPlatform && source.status === "connected" && source.recovery !== "contact-owner")) {
+      return {
+        type: "warning",
+        title: "Connection is not ready",
+        message: "Authorization returned, but an active connector could not be confirmed. Review setup requirements before using live reports.",
+      };
+    }
     return {
       type: "success",
       title: "Connector authorized",
@@ -100,7 +113,7 @@ function readOAuthNotice(
   // deployment's OAuth settings, so "ask the owner" would send the operator
   // away from a fix they can make themselves. An old link can still carry the
   // code; it is answered with the way that works.
-  if (kind === "configuration" && credentialFormSources.has(errorPlatform)) {
+  if (kind === "configuration" && credentialFormSources.has(errorPlatform) && !sources.some((source) => source.id === errorPlatform && source.recovery === "contact-owner")) {
     return {
       type: "warning",
       title: "Connect with API credentials",
@@ -228,15 +241,26 @@ function DataSourcesContent({
     applyOAuthErrorState(initialSources, searchParams),
   );
   const [notice, setNotice] = useState<ConsoleNotice | null>(() =>
-    readOAuthNotice(searchParams, credentialFormSourceIds(initialSources)),
+    readOAuthNotice(searchParams, credentialFormSourceIds(initialSources), initialSources),
   );
   // The source whose credential form is open, if any.
-  const [credentialSourceId, setCredentialSourceId] = useState<string | null>(null);
+  const [credentialSourceId, setCredentialSourceId] = useState<string | null>(() => {
+    const id = searchParams.get("platform");
+    return hasPermission(viewer.role, "sync:trigger") && searchParams.get("oauth_error") &&
+      classifyOAuthFailure(searchParams.get("oauth_error")!) === "configuration" &&
+      initialSources.some((source) => source.id === id && source.connectMethod === "credentials") ? id : null;
+  });
+  const [setupSourceId, setSetupSourceId] = useState<string | null>(() => {
+    const id = searchParams.get("platform");
+    return searchParams.get("oauth_error") && classifyOAuthFailure(searchParams.get("oauth_error")!) === "configuration"
+      && initialSources.some((source) => source.id === id) &&
+      !(hasPermission(viewer.role, "sync:trigger") && initialSources.some((source) => source.id === id && source.connectMethod === "credentials")) ? id : null;
+  });
   // The OAuth redirect lands back on a row that otherwise looks exactly as it
   // did before. A short confirmation closes that loop, then the row settles
   // into its ordinary healthy state rather than keeping a permanent badge.
   const [verifiedSourceId, setVerifiedSourceId] = useState<string | null>(() =>
-    searchParams.get("status") === "success"
+    searchParams.get("status") === "success" && !searchParams.get("oauth_error") && initialSources.some((source) => source.id === searchParams.get("connected") && source.status === "connected" && source.recovery !== "contact-owner")
       ? searchParams.get("connected")
       : null,
   );
@@ -268,6 +292,11 @@ function DataSourcesContent({
 
   const handleAuthorize = useCallback(
     (sourceId: string) => {
+      const source = sources.find((item) => item.id === sourceId);
+      if ((source?.recovery === "contact-owner" || source?.status === "unverified") && source.connectMethod !== "credentials") {
+        setSetupSourceId(sourceId);
+        return;
+      }
       // A form-connected source opens its form in place. Sending it to the
       // OAuth route would fail on a deployment without OAuth settings, which
       // is exactly the dead end the form replaces.
@@ -280,9 +309,9 @@ function DataSourcesContent({
         return;
       }
       setLoadingById((current) => ({ ...current, [sourceId]: true }));
-      window.location.assign(`/api/connectors/oauth/${sourceId}/authorize`);
+      window.location.assign(`/api/connectors/oauth/${sourceId}/authorize?client=${encodeURIComponent(clientSlug)}`);
     },
-    [sources],
+    [sources, clientSlug],
   );
 
   const handleRequestDisconnect = useCallback((sourceId: string) => {
@@ -415,16 +444,20 @@ function DataSourcesContent({
                 lastSyncedAt: result.savedAt,
                 targetAccount: result.targetAccount,
                 recovery: undefined,
+                credential: sourceId === "meta-ads" && result.expiresAt ? {
+                  kind: "long-lived-access-token",
+                  state: "active",
+                  expiresAt: result.expiresAt,
+                  daysRemaining: Math.max(0, Math.ceil((Date.parse(result.expiresAt) - Date.now()) / 86_400_000)),
+                } : undefined,
               }
             : source,
         ),
       );
       setNotice({
-        type: result.auditRecorded ? "success" : "warning",
-        title: "Credentials saved",
-        message: result.auditRecorded
-          ? "Google Ads credentials saved successfully."
-          : "Google Ads credentials saved successfully, but the activity log did not record the change. Tell the dashboard owner so the audit trail can be completed.",
+        type: result.auditRecorded && !health?.liveSyncLocked ? "success" : "warning",
+        title: "API access verified and credentials saved",
+        message: `${sources.find((source) => source.id === sourceId)?.name ?? "Connector"} reporting access is verified. ${health?.liveSyncLocked ? "Live reporting is still locked by workspace runtime settings; these credentials are saved for this brand. " : ""}${result.auditRecorded ? "" : "The activity log could not record the change; ask the workspace owner to complete the audit trail."}`,
       });
       // A reload of this URL must not repaint the error an old OAuth attempt
       // left in the query string over the connection that now works.
@@ -437,9 +470,9 @@ function DataSourcesContent({
       }
       // The save was verified before it was stored; this confirms the same
       // thing from the stored row, through the path every sync will take.
-      void handleTestConnection(sourceId);
+      if (sources.find((source) => source.id === sourceId)?.testable) void handleTestConnection(sourceId);
     },
-    [credentialSourceId, handleTestConnection],
+    [credentialSourceId, handleTestConnection, health, sources],
   );
 
   const credentialSource = credentialSourceId
@@ -476,6 +509,7 @@ function DataSourcesContent({
       <header className="console-page-header">
         <div>
           {/* Same name as the sidebar entry, so the page is where the menu said. */}
+          <span className="eyebrow">Workspace / Connections</span>
           <h1>Data sources</h1>
           <p>Connector state, account scope, and recovery actions in one operational view.</p>
         </div>
@@ -512,6 +546,7 @@ function DataSourcesContent({
         </div>
       )}
 
+      <div className={`connector-workspace${health ? " connector-workspace--with-runtime" : ""}`}>
       <ConnectorConsole
         activeSources={activeSources}
         canManage={canManage}
@@ -522,6 +557,10 @@ function DataSourcesContent({
         onConfirmDisconnect={handleConfirmDisconnect}
         onRequestDisconnect={handleRequestDisconnect}
         onTest={handleTestConnection}
+        onSetup={(sourceId) => {
+          if (canManage && sources.find((source) => source.id === sourceId)?.connectMethod === "credentials") setCredentialSourceId(sourceId);
+          else setSetupSourceId(sourceId);
+        }}
         plannedSources={plannedSources}
         testResults={testResults}
         timeZone={syncTimeZone}
@@ -529,17 +568,80 @@ function DataSourcesContent({
       />
 
       {health && <ConnectorRuntimePanel health={health} />}
+      </div>
+
+      <ConnectorSetupDialog
+        source={sources.find((source) => source.id === setupSourceId) ?? null}
+        accountName={accountName}
+        canManage={canManage}
+        onClose={() => setSetupSourceId(null)}
+      />
 
       {canManage && (
         <ConnectorCredentialsModal
+          key={credentialSourceId ?? "closed"}
           accountName={accountName}
           clientSlug={clientSlug}
           onClose={() => setCredentialSourceId(null)}
           onSaved={handleCredentialsSaved}
           open={credentialSource !== null}
+          platform={(credentialSource?.id ?? "google-ads") as DirectConnectorPlatform}
+          setup={credentialSource?.setup}
         />
       )}
     </AppFrame>
+  );
+}
+
+function ConnectorSetupDialog({ source, accountName, canManage, onClose }: {
+  source: DataSourceCard | null;
+  accountName: string;
+  canManage: boolean;
+  onClose: () => void;
+}) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+  const descriptionId = useId();
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (source && dialog && !dialog.open) {
+      dialog.showModal();
+      dialog.scrollTop = 0;
+    }
+    if (!source && dialog?.open) dialog.close();
+  }, [source]);
+  return (
+    <dialog ref={dialogRef} className="connector-setup-dialog" aria-labelledby={titleId} aria-describedby={descriptionId} onCancel={onClose} onClose={onClose}>
+      {source && <>
+        <header className="connector-setup-dialog__header">
+          <div>
+            <span className="eyebrow">{accountName}</span>
+            <h2 id={titleId}>{source.name} setup requirements</h2>
+          </div>
+          <button className="console-button console-button--quiet" type="button" onClick={onClose} aria-label="Close setup requirements">Close</button>
+        </header>
+        <p id={descriptionId}>This connector is not ready for live reporting. The dashboard owner must complete the requirements below, then return to Data sources to authorize access.</p>
+        <p className="connector-setup-dialog__notice">{canManage ? "Configure secrets in the server's environment settings, then redeploy. " : "You have view-only access. Share this checklist with the dashboard owner. "}Only setting names and presence are shown here; never paste secrets into worklogs or messages.</p>
+        <h3>Deployment settings</h3>
+        <ul className="connector-setup-dialog__settings">
+          {source.setup?.settings.map((setting) => <li key={setting.name}>
+            <code>{setting.name}</code><span className={setting.configured ? "setup-present" : "setup-missing"}>{setting.configured ? "Present · not validated" : "Missing"}</span>
+          </li>)}
+        </ul>
+        <h3>Provider and account checklist</h3>
+        <ol>{(source.setup?.requirements ?? ["Configure provider credentials, read-only permissions, account mapping, and the OAuth callback before connecting."]).map((requirement) => <li key={requirement}>{requirement}</li>)}</ol>
+        {source.connectMethod !== "credentials" && <>
+          <h3>Exact OAuth callback</h3>
+          <code className="connector-setup-dialog__callback">{source.setup?.callbackUrl ?? "Set a valid NEXT_PUBLIC_SITE_URL first; the callback will appear here."}</code>
+        </>}
+        <h3>Confirm reporting readiness</h3>
+        <p>Reload this page after deployment. Authorize the correct brand, verify its stored credential and account mapping, then check the runtime live-sync gate. Authorization alone does not enable live reporting. Demo mode stays labelled until live data is available.</p>
+        <footer>
+          {source.setup?.documentationUrl && <a className="console-button console-button--quiet" href={source.setup.documentationUrl} target="_blank" rel="noreferrer">Provider documentation ↗</a>}
+          <button className="console-button console-button--primary" type="button" onClick={onClose}>Got it</button>
+        </footer>
+      </>}
+    </dialog>
   );
 }
 
@@ -554,7 +656,7 @@ export function DataSourcesShell(props: {
 }) {
   return (
     <Suspense fallback={<div className="console-loading">Loading connectors…</div>}>
-      <DataSourcesContent {...props} />
+      <DataSourcesContent key={props.clientSlug} {...props} />
     </Suspense>
   );
 }

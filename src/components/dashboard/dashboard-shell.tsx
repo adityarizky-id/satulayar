@@ -190,6 +190,8 @@ function TargetsBar({
   }
 
   return (
+    <details className="targets-disclosure">
+      <summary>Performance targets <span>Adjust CPO, CPA and conversion rate</span></summary>
     <form
       aria-busy={disabled}
       aria-label={`Performance targets in ${currency}`}
@@ -270,6 +272,7 @@ function TargetsBar({
         {disabled ? "Applying…" : "Apply targets"}
       </button>
     </form>
+    </details>
   );
 }
 
@@ -750,10 +753,11 @@ function ImpressionShareSection({
             };
           })}
         />
-        <div className="impression-notes">
-          <p className="semantic-note">{report.dominantLossMessage}</p>
-          <p className="semantic-note">{report.safeMessage}</p>
-        </div>
+        <details className="card-notes">
+          <summary>Impression share reporting notes</summary>
+          <p>{report.dominantLossMessage}</p>
+          <p>{report.safeMessage}</p>
+        </details>
       </article>
 
       <div className="table-scroller">
@@ -1781,35 +1785,31 @@ export function DashboardShell({
                 referenceDates[account] ?? initialSnapshot.selectedRange.end
               }
             />
-            <div className="filter-actions">
+            {!isDummyMode && <div className="filter-actions">
               <button
                 aria-busy={isRefreshing}
                 aria-label={
                   isRefreshing
                     ? "Refreshing dashboard data"
-                    : isDummyMode
-                      ? "Reload simulated demo data"
-                      : canTriggerSync
+                    : canTriggerSync
                         ? "Refresh dashboard data"
                         : "Refresh unavailable with view-only access"
                 }
                 className={`button button--primary button--refresh${
                   isRefreshing ? " is-loading" : ""
                 }`}
-                disabled={isRefreshing || (!isDummyMode && !canTriggerSync)}
+                disabled={isRefreshing || !canTriggerSync}
                 onClick={refreshData}
                 type="button"
               >
                 <RefreshIcon className={isRefreshing ? "spin" : ""} />
                 {isRefreshing
                   ? "Refreshing…"
-                  : isDummyMode
-                    ? "Reload Demo"
-                    : canTriggerSync
+                  : canTriggerSync
                       ? "Refresh data"
                       : "View-only access"}
               </button>
-            </div>
+            </div>}
             <div className="filter-bar__details">
               <div
                 aria-atomic="true"
@@ -1868,17 +1868,19 @@ export function DashboardShell({
             </div>
           </div>
 
-          <SnapshotCard
-            currency={snapshot.account.currency}
-            snapshot={snapshot}
-          />
+          <div className="snapshot-workspace">
+            <SnapshotCard
+              currency={snapshot.account.currency}
+              snapshot={snapshot}
+            />
 
-          <TargetsBar
-            currency={snapshot.account.currency}
-            disabled={isApplying}
-            onApply={(next) => void applyTargets(next)}
-            targets={targets}
-          />
+            <TargetsBar
+              currency={snapshot.account.currency}
+              disabled={isApplying}
+              onApply={(next) => void applyTargets(next)}
+              targets={targets}
+            />
+          </div>
 
           <BudgetPacingCard
             budgets={budgets}

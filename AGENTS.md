@@ -160,7 +160,7 @@ Use these mappings unless the data question requires something else:
 - Account verdict: snapshot or KPI card with explicit pass, near, breach, or unavailable text.
 - Spend and outcome trend: `LineChart`; keep differently defined metrics in separate panels or normalize them explicitly.
 - Platform or year comparison: `ColumnChart` with common units and a zero baseline.
-- Budget consumption: `ProgressRing` using the dedicated contract below; do not replace it with a pie, gauge, or speedometer.
+- Budget consumption: Aditya selected the initial Stitch Paid draft's compact circular design in the chart-fidelity follow-up. Use a rounded progress ring with centre percentage and adjacent cycle budget, spend, remaining amount and plan provenance. Keep the first lap at 100% and preserve overflow in a second lap plus explicit accessible/text amounts. An unset budget displays N/A. Do not use a pie, gauge, or speedometer.
 - Impression share: `StackedShareBars`, with masked values visible in copy and the supporting table.
 - Channel, device, product, referrer, and location share: ranked `BarList` by default; `DonutChart` only for a small, stable part-to-whole view with adjacent exact values.
 - Customer journey: ordered journey metrics by default; use a funnel only when the population and step definitions are compatible and monotonic.
@@ -295,7 +295,7 @@ The total entrance choreography for one chart should normally finish within 500m
 ### Disallowed or exceptional patterns
 
 - No 3D or perspective applied to a **data encoding** — no 3D bars, exploded pies, or tilted plot planes, because depth distorts the length, angle, and area a reader is asked to compare. 3D, perspective, and shader work in **chrome** (backdrops, hero panels, illustrations, empty states) is allowed and encouraged.
-- No speedometer gauges for budget; the progress ring contract below is the project's answer.
+- No speedometer gauges for budget; use the approved horizontal cycle meter. The ring contract below applies only where a ring is retained.
 - No chart selected only because it appears in the reference inventory or a component library.
 - No more than one primary question per chart.
 - No rainbow palette when order or magnitude can use one sequential scale.
@@ -341,12 +341,16 @@ A proposed visualization is ready to implement only when all answers below are y
 
 ### Budget progress ring
 
+The Dark dashboard cycle cards now use the approved horizontal meter documented
+in `docs/design-system.md`. These geometry rules remain binding on any retained
+`ProgressRing` consumer; they do not require replacing the new meter with a ring.
+
 - Zero degrees begins at 12 o'clock and progress moves clockwise.
 - The colored arc represents spent divided by budget.
-- A short charcoal capsule with rounded ends sits on the same circular path and marks the exact current endpoint. It must not protrude like a gauge needle.
+- The current Paid budget design uses a plain rounded endpoint without a charcoal capsule or hover scaling. Other retained ring variants may expose the optional endpoint marker.
 - Do not render a separate red 100% notch.
-- At exactly 100%, the inner circle is complete and the endpoint is at 12 o'clock.
-- Above 100%, keep the inner ring complete and draw excess on the outer orbit as a second lap. Move the charcoal endpoint capsule to that orbit and show the explicit `+N%` overflow badge.
+- At exactly 100%, the inner circle is complete.
+- Above 100%, keep the inner ring complete and draw excess on the outer orbit as a second lap, with an explicit `+N%` overflow badge and amount.
 - Red is used only after the hard 100% budget limit is exceeded.
 
 ## Forms and controls

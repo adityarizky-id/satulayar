@@ -11,6 +11,15 @@ import {
   resolveMetaCampaignPrefixes,
 } from "@/lib/connectors/meta-ads-config";
 
+test("form-saved Meta campaign scope and API version override demo defaults", () => {
+  const resolved = resolveMetaAdsConfig("kopi-senja", { environment: {}, storedAccounts: [{ clientSlug: "kopi-senja", customerId: "123456789012345", campaignFilter: "", campaignPrefixes: [], apiVersion: "v23.0" }] });
+  assert.ok(resolved.ok);
+  assert.equal(resolved.config.adAccountId, "123456789012345");
+  assert.equal(resolved.config.campaignNameFilter, "");
+  assert.deepEqual(resolved.config.campaignNamePrefixes, []);
+  assert.equal(resolved.config.apiVersion, "v23.0");
+});
+
 test("normalizeMetaAdAccountId handles act_ prefixes, whitespace, and validates digits", () => {
   assert.equal(normalizeMetaAdAccountId("100000000000001"), "100000000000001");
   assert.equal(normalizeMetaAdAccountId("act_100000000000001"), "100000000000001");

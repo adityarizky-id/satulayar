@@ -61,10 +61,10 @@ export function ColumnChart({
   const plotWidth = WIDTH - PADDING * 2;
   const plotHeight = HEIGHT - PADDING * 2;
   const slotWidth = groups.length === 0 ? plotWidth : plotWidth / groups.length;
-  const barWidth = Math.max(
-    4,
-    (slotWidth * 0.62) / Math.max(seriesLabels.length, 1),
-  );
+  const barGap = 4;
+  const barWidth = Math.min(10, Math.max(2,
+    (slotWidth * 0.62 - barGap * (seriesLabels.length - 1)) / Math.max(seriesLabels.length, 1),
+  ));
 
   function slotCentre(index: number) {
     return PADDING + slotWidth * index + slotWidth / 2;
@@ -172,7 +172,7 @@ export function ColumnChart({
 
           {groups.map((group, groupIndex) => {
             const centre = slotCentre(groupIndex);
-            const groupWidth = barWidth * group.bars.length;
+            const groupWidth = barWidth * group.bars.length + barGap * (group.bars.length - 1);
 
             return (
               <g key={group.key}>
@@ -186,13 +186,13 @@ export function ColumnChart({
                       }${activeKey === group.key ? " column-bar--active" : ""}${
                         focusSeries === barIndex ? " column-bar--focus" : ""
                       }`}
-                      height={Math.max(height, 1)}
+                      height={Math.max(height, 0)}
                       key={`${group.key}:${barIndex}`}
-                      rx={3.5}
-                      ry={3.5}
+                      rx={1.5}
+                      ry={1.5}
                       width={barWidth}
-                      x={centre - groupWidth / 2 + barIndex * barWidth}
-                      y={HEIGHT - PADDING - Math.max(height, 1)}
+                      x={centre - groupWidth / 2 + barIndex * (barWidth + barGap)}
+                      y={HEIGHT - PADDING - Math.max(height, 0)}
                     />
                   );
                 })}

@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+
+import { BudgetPacingCard } from "@/components/dashboard/budget-pacing-card";
+import { buildDashboardSnapshot } from "@/lib/dashboard/fixtures";
 
 import { accountSlugs } from "@/lib/dashboard/accounts";
 import {
@@ -67,6 +72,43 @@ function day(from: string, offset: number): string {
 function jar(entries: Record<string, string>) {
   return (name: string): string | undefined => entries[name];
 }
+
+test("budget ring caps its first lap while preserving an actual over-budget amount", () => {
+  const snapshot = buildDashboardSnapshot();
+  snapshot.budgetPacing.platforms = [{
+    ...snapshot.budgetPacing.platforms[0],
+    monthlyBudget: 100,
+    spentToDate: 125,
+    remainingBudget: -25,
+    actualProgress: 1.25,
+  }];
+  const markup = renderToStaticMarkup(createElement(BudgetPacingCard, {
+    snapshot, budgets: { meta: 100, google: 100 }, disabled: false, onApply: () => {},
+  }));
+  assert.match(markup, /role="progressbar"/);
+  assert.match(markup, /aria-valuenow="100"/);
+  assert.match(markup, /125% used/);
+  assert.match(markup, /ring__value--complete/);
+  assert.match(markup, /ring__overflow/);
+  assert.match(markup, /pacing-card__overflow/);
+  assert.match(markup, /over cycle budget/);
+});
+
+test("an unset cycle budget remains unavailable instead of reporting zero-percent use", () => {
+  const snapshot = buildDashboardSnapshot();
+  snapshot.budgetPacing.platforms = [{
+    ...snapshot.budgetPacing.platforms[0],
+    monthlyBudget: 0,
+    actualProgress: 0,
+    status: "no-budget",
+  }];
+  const markup = renderToStaticMarkup(createElement(BudgetPacingCard, {
+    snapshot, budgets: { meta: 0, google: 0 }, disabled: false, onApply: () => {},
+  }));
+  assert.match(markup, /aria-valuetext="No budget set"/);
+  assert.doesNotMatch(markup, /aria-valuenow=/);
+  assert.match(markup, /N\/A/);
+});
 
 test("each brand keeps its plan in its own cookie, and no two brands collide", () => {
   const names = accountSlugs().map(budgetsCookieName);

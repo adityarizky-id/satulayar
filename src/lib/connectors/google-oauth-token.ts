@@ -28,6 +28,9 @@ export async function exchangeGoogleRefreshToken(
   try {
     response = await fetch(GOOGLE_OAUTH_TOKEN_ENDPOINT, {
       method: "POST",
+      cache: "no-store",
+      redirect: "error",
+      signal: AbortSignal.timeout(10000),
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
         client_id: input.clientId ?? "",

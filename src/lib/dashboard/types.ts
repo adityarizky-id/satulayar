@@ -483,6 +483,7 @@ export interface MetaCreativeHealthRow {
   adId: string;
   adName: string;
   format: "static" | "carousel" | "video_reels";
+  /** Active delivery days inside the selected inclusive reporting period. */
   daysActive: number;
   spend: number;
   impressions: number;

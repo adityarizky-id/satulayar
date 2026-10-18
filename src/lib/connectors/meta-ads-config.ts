@@ -50,6 +50,9 @@ export type MetaAdAccountIdResolution =
 export interface StoredMetaAccount {
   clientSlug: string;
   customerId: string | null;
+  campaignFilter?: string;
+  campaignPrefixes?: readonly string[];
+  apiVersion?: string;
 }
 
 export interface CanonicalMetaBrandProfile {
@@ -330,8 +333,11 @@ export function resolveMetaAdsConfig(
     return { clientSlug: slug, ...own };
   }
 
-  const ownFilter = resolveMetaCampaignFilter(slug, environment);
-  const ownPrefixes = resolveMetaCampaignPrefixes(slug, environment);
+  const savedFor = (target: string) => options.storedAccounts.find((row) => row.clientSlug === target);
+  const filterFor = (target: string) => savedFor(target)?.campaignFilter ?? resolveMetaCampaignFilter(target, environment);
+  const prefixesFor = (target: string) => savedFor(target)?.campaignPrefixes ?? resolveMetaCampaignPrefixes(target, environment);
+  const ownFilter = filterFor(slug);
+  const ownPrefixes = prefixesFor(slug);
 
   /**
    * The rule actually in force for a brand, as one comparable string. Two
@@ -374,8 +380,8 @@ export function resolveMetaAdsConfig(
         clientSlug: other,
         adAccountId: res.adAccountId,
         filter: effectiveRule(
-          resolveMetaCampaignFilter(other, environment),
-          resolveMetaCampaignPrefixes(other, environment),
+          filterFor(other),
+          prefixesFor(other),
         ),
       });
     }
@@ -424,7 +430,7 @@ export function resolveMetaAdsConfig(
     config: {
       accessToken,
       adAccountId: own.adAccountId,
-      apiVersion: read(environment, "META_GRAPH_API_VERSION"),
+      apiVersion: savedFor(slug)?.apiVersion ?? read(environment, "META_GRAPH_API_VERSION"),
       campaignNameFilter: ownFilter,
       campaignNamePrefixes: ownPrefixes,
       expectedCurrency: account.currency,
@@ -448,7 +454,7 @@ export async function loadMetaAdsConfig(
   try {
     const list =
       listStoredCustomerIds ??
-      (await import("./token-storage")).listActiveConnectorCustomerIds;
+      (await import("./token-storage")).listActiveMetaAccountConfigurations;
     storedAccounts = await list("meta-ads");
   } catch {
     return {

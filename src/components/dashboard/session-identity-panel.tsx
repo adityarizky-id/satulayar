@@ -1,6 +1,7 @@
 import { memo } from "react";
 
 import type { DashboardViewer } from "@/lib/auth/types";
+import { AccountIcon } from "@/components/dashboard/icons";
 
 const ROLE_LABELS: Record<DashboardViewer["role"], string> = {
   admin: "Administrator",
@@ -11,9 +12,11 @@ const ROLE_LABELS: Record<DashboardViewer["role"], string> = {
 export const SessionIdentityPanel = memo(function SessionIdentityPanel({
   authMode,
   viewer,
+  workspaceName,
 }: {
   authMode: "preview" | "supabase";
   viewer: DashboardViewer;
+  workspaceName?: string;
 }) {
   const isSupabase = authMode === "supabase";
 
@@ -26,27 +29,34 @@ export const SessionIdentityPanel = memo(function SessionIdentityPanel({
       <header className="session-panel__header">
         <div>
           <h2 id="session-identity-title">Signed-in identity</h2>
-          <p>
-            {isSupabase
-              ? "Verified through the active workspace session."
-              : "Local preview session with no live credentials exposed."}
-          </p>
         </div>
         <span className={`signal-chip signal-chip--${isSupabase ? "connected" : "planned"}`}>
           <span aria-hidden="true" className="signal-chip__dot" />
           {isSupabase ? "Signed in" : "Preview"}
         </span>
       </header>
+      <div className="session-persona">
+        <span aria-hidden="true" className="session-persona__icon"><AccountIcon /></span>
+        <div>
+          <strong>{ROLE_LABELS[viewer.role]}{isSupabase ? "" : " (local session)"}</strong>
+          <span>{isSupabase ? "Authenticated workspace session" : "Preview identity · no live account session"}</span>
+        </div>
+      </div>
       <dl className="session-facts">
         <div>
-          <dt>Email</dt>
-          <dd>{viewer.email ?? "Local preview user"}</dd>
+          <dt>Workspace context</dt>
+          <dd>{workspaceName ?? "Current workspace"}</dd>
         </div>
         <div>
           <dt>Role</dt>
           <dd>{ROLE_LABELS[viewer.role]}</dd>
         </div>
+        <div className="session-facts__session">
+          <dt>{isSupabase ? "Email" : "Session type"}</dt>
+          <dd>{isSupabase ? viewer.email ?? "Signed in" : "Local preview"}</dd>
+        </div>
       </dl>
+      <p className="session-panel__note">{isSupabase ? "Access follows your current workspace role." : "This local preview does not establish a live account session."}</p>
     </section>
   );
 });

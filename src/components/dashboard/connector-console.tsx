@@ -82,6 +82,14 @@ export interface DataSourceCard {
   recovery?: ConnectorRecovery;
   /** Absent means `oauth`. */
   connectMethod?: ConnectMethod;
+  /** Safe names and presence only; credential values never reach the browser. */
+  setup?: {
+    settings: { name: string; configured: boolean }[];
+    requirements: string[];
+    callbackUrl: string | null;
+    documentationUrl: string;
+    oauthDefaults?: { clientConfigured: boolean; developerTokenConfigured: boolean };
+  };
 }
 
 export type ConnectionTestState =
@@ -109,6 +117,7 @@ interface ConnectorConsoleProps {
   onConfirmDisconnect: (sourceId: string) => void;
   onRequestDisconnect: (sourceId: string) => void;
   onTest: (sourceId: string) => void;
+  onSetup?: (sourceId: string) => void;
 }
 
 const STATUS_LABELS: Record<ConnectorState, string> = {
@@ -176,12 +185,12 @@ export function resolveConnectorAuthorizationState(
     return "healthy";
   }
 
-  // A connector the operator connects with their own credentials is never
-  // blocked on the deployment: entering the credentials is the fix.
+  // Per-brand credentials bypass deployment OAuth settings, but still require
+  // working server storage. A blocked storage gate opens the same checklist.
   if (
     source.status === "error" &&
     source.recovery === "contact-owner" &&
-    source.connectMethod !== "credentials"
+    (source.connectMethod !== "credentials" || source.setup?.settings.some((setting) => !setting.configured))
   ) {
     return "configuration-blocked";
   }
@@ -210,7 +219,7 @@ export function connectorChipPresentation(
   authorizationState: ConnectorAuthorizationState,
 ): { label: string; modifier: string } {
   if (authorizationState === "configuration-blocked") {
-    return { label: "Config required", modifier: "error" };
+    return { label: "Config required", modifier: "disconnected" };
   }
 
   if (authorizationState === "reauth-required") {
@@ -297,6 +306,7 @@ export function resolveManageActionIds(
   source: DataSourceCard,
   authorizationState: ConnectorAuthorizationState,
 ): ManageActionId[] {
+  if (authorizationState === "configuration-blocked") return [];
   // A healthy row keeps Test connection on the surface, so repeating it in the
   // tray would offer the same action twice.
   const testIsOnSurface = authorizationState === "healthy";
@@ -422,6 +432,7 @@ const ConnectorRow = memo(function ConnectorRow({
   onConfirmDisconnect,
   onRequestDisconnect,
   onTest,
+  onSetup,
 }: {
   canManage: boolean;
   disconnectPending: boolean;
@@ -435,6 +446,7 @@ const ConnectorRow = memo(function ConnectorRow({
   onConfirmDisconnect: (sourceId: string) => void;
   onRequestDisconnect: (sourceId: string) => void;
   onTest: (sourceId: string) => void;
+  onSetup?: (sourceId: string) => void;
 }) {
   const isConnected = source.status === "connected";
   const isPlanned = source.status === "planned";
@@ -494,7 +506,8 @@ const ConnectorRow = memo(function ConnectorRow({
     canManage &&
     !disconnectPending &&
     !isVerified &&
-    (isConnected || authorizationState !== "healthy");
+    (isConnected || authorizationState !== "healthy") &&
+    authorizationState !== "configuration-blocked";
 
   const manageTrigger = (
     <ConnectorManageTrigger
@@ -582,6 +595,14 @@ const ConnectorRow = memo(function ConnectorRow({
       <div className="connector-row__actions">
         {isPlanned ? (
           <span className="connector-row__roadmap">Roadmap connector</span>
+        ) : authorizationState === "configuration-blocked" || source.status === "unverified" ? (
+          <button
+            className={`console-button ${canManage && source.connectMethod === "credentials" ? "console-button--primary" : "console-button--quiet"}`}
+            onClick={() => onSetup?.(source.id)}
+            type="button"
+          >
+            {canManage && usesCredentialForm ? "Configure connection" : "View setup requirements"}
+          </button>
         ) : !canManage ? (
           <span className="connector-row__roadmap">Editor access required</span>
         ) : disconnectPending ? (
@@ -604,23 +625,10 @@ const ConnectorRow = memo(function ConnectorRow({
               Cancel
             </button>
           </>
-        ) : isVerified ? (
+        ) : isVerified && isConnected && authorizationState === "healthy" ? (
           <span className="connector-row__verified" role="status">
             <span aria-hidden="true">✓</span> Verified
           </span>
-        ) : authorizationState === "configuration-blocked" ? (
-          <>
-            {/*
-              The page notice already tells this operator that re-authorizing
-              will not help. Offering the button anyway would contradict it, so
-              the row states the owner action instead and keeps the rest in the
-              menu.
-            */}
-            <span className="connector-row__roadmap">
-              Ask the dashboard owner
-            </span>
-            {manageTrigger}
-          </>
         ) : isConnected || authorizationState === "reauth-required" ? (
           <>
             {authorizationState === "reauth-required" ? (
@@ -742,6 +750,7 @@ function ConnectorGroup({
   onConfirmDisconnect,
   onRequestDisconnect,
   onTest,
+  onSetup,
 }: Omit<ConnectorConsoleProps, "activeSources" | "plannedSources"> & {
   title: string;
   description: string;
@@ -776,6 +785,7 @@ function ConnectorGroup({
             onConfirmDisconnect={onConfirmDisconnect}
             onRequestDisconnect={onRequestDisconnect}
             onTest={onTest}
+            onSetup={onSetup}
             source={source}
             testState={testResults[source.id] ?? { status: "idle" }}
             timeZone={timeZone}

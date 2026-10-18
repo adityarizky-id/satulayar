@@ -622,7 +622,10 @@ export function SearchTermSection({
         />
       ) : null}
 
-      <p className="semantic-note">{analysis.safeMessage}</p>
+      <details className="panel card-notes">
+        <summary>Search reporting notes</summary>
+        <p>{analysis.safeMessage}</p>
+      </details>
     </section>
   );
 }

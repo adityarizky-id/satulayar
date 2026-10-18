@@ -36,6 +36,7 @@ export interface StackedBarChartProps {
   /** Shown as the always-last, always-neutral top segment when present. */
   otherLabel: string;
   formatValue: (value: number) => string;
+  formatAxisValue?: (value: number) => string;
   /** When provided, synchronises the chart's focused year with the parent panel table. */
   focusYear?: number | null;
   /** Callback when focus year changes or is toggled. */
@@ -43,7 +44,7 @@ export interface StackedBarChartProps {
 }
 
 const WIDTH = 960;
-const HEIGHT = 300;
+const HEIGHT = 256;
 const LEFT = 52;
 const RIGHT = 16;
 const TOP = 18;
@@ -122,6 +123,7 @@ export function StackedBarChart({
   segments,
   otherLabel,
   formatValue,
+  formatAxisValue = formatValue,
   focusYear,
   onFocusYearChange,
 }: StackedBarChartProps) {
@@ -189,7 +191,7 @@ export function StackedBarChart({
   const maxClusterWidth = slotWidth * 0.78;
   const barGap = Math.max(2, Math.min(5, Math.floor(10 / numActiveYears)));
   const barWidth = Math.min(
-    28,
+    10,
     Math.max(6, (maxClusterWidth - (numActiveYears - 1) * barGap) / numActiveYears),
   );
   const clusterWidth = numActiveYears * barWidth + (numActiveYears - 1) * barGap;
@@ -295,6 +297,13 @@ export function StackedBarChart({
           role="group"
           viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         >
+          <g aria-hidden="true" className="chart-axis-label">
+            {[0, 0.25, 0.5, 0.75, 1].map((fraction) => (
+              <text key={`value:${fraction}`} textAnchor="end" x={LEFT - 8} y={TOP + plotHeight * (1 - fraction) + 3}>
+                {formatAxisValue(maxTotal * fraction)}
+              </text>
+            ))}
+          </g>
           {[0.25, 0.5, 0.75, 1].map((fraction) => (
             <line
               className="chart-grid-line"
@@ -399,8 +408,8 @@ export function StackedBarChart({
                           })
                         }
                         role={value > 0 ? "button" : undefined}
-                        rx={2.5}
-                        ry={2.5}
+                        rx={0}
+                        ry={0}
                         tabIndex={value > 0 ? 0 : undefined}
                         width={barWidth}
                         x={barX}

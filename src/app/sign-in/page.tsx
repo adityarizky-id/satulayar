@@ -36,7 +36,8 @@ export default async function SignInPage() {
           </div>
 
           <div className="auth-card__intro">
-            <h1>Welcome back</h1>
+            <h2>Welcome back</h2>
+            <p>Sign in to your marketing intelligence workspace.</p>
           </div>
 
           {configuration.mode === "preview" && (
@@ -57,6 +58,7 @@ export default async function SignInPage() {
             </div>
           )}
 
+          <p className="auth-card__boundary">Ad performance, store outcomes, and reviewed actions in one workspace.</p>
         </div>
       </section>
     </main>

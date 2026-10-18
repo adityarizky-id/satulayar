@@ -154,6 +154,7 @@ export function WorklogShell({
   const dateInputRef = useRef<HTMLInputElement>(null);
 
   // In-Platform Change History Sync State
+  const [showAllChanges, setShowAllChanges] = useState(false);
   const [syncPlatform, setSyncPlatform] = useState<WorklogPlatform>("all");
   const [detectedChanges, setDetectedChanges] = useState<PlatformChangeEvent[]>(
     getMockPlatformChangeHistory(selectedAccount, "all"),
@@ -378,27 +379,8 @@ export function WorklogShell({
     >
       <section className="hero hero--worklog" id="worklog-overview">
         <div className="worklog-hero__copy">
-          <h1>Record the decision behind every change.</h1>
-          <p>
-            Worklog entries add human context to performance shifts. They explain the
-            numbers; they never alter them.
-          </p>
-        </div>
-        <nav className="worklog-hero__actions" aria-label="Add a worklog entry">
-          <strong>Add an entry</strong>
-          <span>Start from your notes or review a sample platform change.</span>
-          <div>
-            <a className="button button--primary" href="#worklog-form">
-              Log manually
-            </a>
-            <a className="button button--secondary" href="#change-history-importer">
-              Review sample changes
-            </a>
-          </div>
-        </nav>
-      </section>
-
-      <form className="filter-bar" onSubmit={(event) => event.preventDefault()}>
+          <h1>Worklog</h1>
+      <form className="worklog-scope" onSubmit={(event) => event.preventDefault()}>
         <AccountField
           accounts={accounts}
           disabled={isSaving || Boolean(queuedApproval)}
@@ -430,19 +412,38 @@ export function WorklogShell({
           {message}
         </p>
       </form>
+          <p>
+            Record what changed, why, and when. Reviewed entries add context to performance charts.
+          </p>
+        </div>
+        <nav className="worklog-hero__actions" aria-label="Add a worklog entry">
+          <strong>Add an entry</strong>
+          <span>Start from your notes or review a sample platform change.</span>
+          <div>
+            <a className="button button--primary" href="#worklog-form">
+              Log manually
+            </a>
+            <a className="button button--secondary" href="#change-history-importer">
+              Review sample changes
+            </a>
+          </div>
+        </nav>
+      </section>
 
-      <section className="section" id="change-history-importer">
+
+
+      <section className="section worklog-review-panel" id="change-history-importer">
         <div className="section-heading section-heading--worklog">
           <div className="worklog-section-copy">
             <div className="worklog-section-title-row">
               <h2>Review platform changes</h2>
               <span className="worklog-sample-label">Sample data</span>
             </div>
-            <p>
+            <details className="worklog-sample-notes"><summary>About sample data</summary><p>
               Preview records shaped like Google Ads <code>change_event</code> and
               Meta <code>activities</code> data. Send one to the form, review the
               context, then save it.
-            </p>
+            </p></details>
           </div>
         </div>
 
@@ -507,7 +508,7 @@ export function WorklogShell({
                   <span role="columnheader">Review</span>
                 </div>
                 <div className="worklog-stream-list" role="rowgroup">
-                  {detectedChanges.map((change) => {
+                  {detectedChanges.slice(0, showAllChanges ? undefined : 4).map((change) => {
                     const dateFormatted =
                       change.platform === "google"
                         ? change.changeDateTime.split("T")[0]
@@ -536,28 +537,28 @@ export function WorklogShell({
                           </span>
                         </div>
                         <div className="worklog-stream-item__info" role="cell">
+                          <details className="worklog-change-details">
+                            <summary className="worklog-stream-item__desc">{change.details}</summary>
                           <strong className="worklog-stream-item__title">
                             {change.entityName}
                           </strong>
-                          <p className="worklog-stream-item__desc">
-                            {change.details}
-                          </p>
                           <span className="worklog-stream-item__meta">
                             By {author}
                           </span>
+                          </details>
                         </div>
 
                         <div className="worklog-stream-actions" role="cell">
                           <button
                             type="button"
                             onClick={() => handleAutofillForm(change)}
-                            className="button button--primary worklog-stream-btn--autofill"
+                            className="button button--secondary worklog-stream-btn--autofill"
                           >
                             <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                               <path d="M12 20h9" />
                               <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
                             </svg>
-                            <span>Review in form</span>
+                              <span>Review in form</span>
                           </button>
                         </div>
                       </div>
@@ -568,9 +569,14 @@ export function WorklogShell({
             )}
           </div>
         </div>
+        {detectedChanges.length > 4 && (
+          <button className="worklog-sample-disclosure" type="button" aria-expanded={showAllChanges} onClick={() => setShowAllChanges((value) => !value)}>
+            {showAllChanges ? "Show fewer sample changes" : `Show all ${detectedChanges.length} sample changes`}
+          </button>
+        )}
       </section>
 
-      <section className="section" id="worklog-form">
+      <section className="section worklog-entry-panel" id="worklog-form">
         <div className="section-heading section-heading--worklog">
           <div className="worklog-section-copy">
             <h2>Log an action</h2>

@@ -18,6 +18,7 @@ import {
   rememberAccount,
 } from "@/components/dashboard/filter-fields";
 import { AccountSyncTime } from "@/components/dashboard/clocks";
+import { useUtilityBarHeight, useResponsiveTables } from "@/components/dashboard/app-frame";
 import {
   ChevronIcon,
   DownloadIcon,
@@ -366,7 +367,7 @@ function MicroSparkline({ label, series }: { label: string; series: TimeSeries }
       role="img"
       viewBox={`0 0 ${width} ${height}`}
     >
-      <title>{label} daily movement</title>
+      <title>{`${label} daily movement`}</title>
       <path
         className="metric-sparkline__line"
         d={smoothLinePath(points, 0)}
@@ -434,7 +435,10 @@ function SeriesChart({
         footerRight={series.points.at(-1)?.date.slice(5) ?? "—"}
       />
       {!hasBaselineLine && (
-        <p className="semantic-note">{comparison.seriesCaveat}</p>
+        <details className="card-notes">
+          <summary>Comparison availability</summary>
+          <p>{comparison.seriesCaveat}</p>
+        </details>
       )}
     </>
   );
@@ -453,6 +457,8 @@ function ShareBarList({
 }) {
   return (
     <BarListBase
+      scale="share"
+      showShare
       comparisonLabel={comparison.label}
       formatChange={(value, previousValue) => {
         const change = getPercentChange(value, previousValue);
@@ -2333,8 +2339,21 @@ function RfmAnalysisPanel({
             the trailing 12 months of order history.
           </p>
         </div>
-        <span className="panel__meta">Dummy store-shaped data</span>
+        <div className="rfm-workspace__actions">
+          <span className="panel__meta">Dummy store-shaped data</span>
+          <button className="button button--secondary" disabled={visibleRows.length === 0} onClick={() => downloadRfmCsv(visibleRows, visibleSummary, analysis.fieldLabels, currency, analysis.asOfDate)} type="button">
+            <DownloadIcon /> Download CSV
+          </button>
+        </div>
       </div>
+
+      <dl className="rfm-overview" aria-label="Selected RFM customer summary">
+        <div><dt>Customers</dt><dd>{numberFormatter.format(visibleSummary.customerCount)} customers</dd></div>
+        <div><dt>Total value</dt><dd>{formatValue(visibleSummary.totalSpent, "currency", currency)}</dd></div>
+        <div><dt>Total orders</dt><dd>{numberFormatter.format(visibleSummary.totalOrders)}</dd></div>
+        <div><dt>Blended AOV</dt><dd>{visibleSummary.totalOrders > 0 ? formatValue(visibleSummary.totalSpent / visibleSummary.totalOrders, "currency", currency) : "N/A"}</dd></div>
+        <div><dt>Mean recency</dt><dd>{visibleSummary.averageRecencyDays} days</dd></div>
+      </dl>
 
       <div className="rfm-workspace__layout">
         <div className="rfm-workspace__report">
@@ -2585,7 +2604,7 @@ function CohortGrid({ rows }: { rows: CohortRow[] }) {
 }
 
 const YEARLY_CHART_WIDTH = 960;
-const YEARLY_CHART_HEIGHT = 340;
+const YEARLY_CHART_HEIGHT = 240;
 const YEARLY_CHART_LEFT = 52;
 const YEARLY_CHART_RIGHT = 52;
 const YEARLY_CHART_TOP = 28;
@@ -2603,6 +2622,7 @@ function YearlySalesOrdersChart({
   onToggleYear: (year: number) => void;
 }) {
   const [activeMonth, setActiveMonth] = useState<number | null>(null);
+  const [showOrderTrend, setShowOrderTrend] = useState(false);
   const visible = series
     .map((year, seriesIndex) => ({ year, seriesIndex }))
     .filter(({ year }) => visibleYears.includes(year.year));
@@ -2619,7 +2639,8 @@ function YearlySalesOrdersChart({
   const plotHeight =
     YEARLY_CHART_HEIGHT - YEARLY_CHART_TOP - YEARLY_CHART_BOTTOM;
   const slotWidth = plotWidth / 12;
-  const barWidth = Math.min(18, (slotWidth * 0.68) / Math.max(visible.length, 1));
+  const barGap = 4;
+  const barWidth = Math.min(10, (slotWidth * 0.68 - barGap * (visible.length - 1)) / Math.max(visible.length, 1));
 
   const centreFor = (monthIndex: number) =>
     YEARLY_CHART_LEFT + slotWidth * monthIndex + slotWidth / 2;
@@ -2679,6 +2700,7 @@ function YearlySalesOrdersChart({
               </button>
             );
           })}
+          <button aria-pressed={showOrderTrend} className="year-toggle__line-label" onClick={() => setShowOrderTrend((shown) => !shown)} type="button"><i />Orders (trend)</button>
         </div>
       </div>
 
@@ -2688,12 +2710,18 @@ function YearlySalesOrdersChart({
           <span>Orders</span>
         </div>
         <svg
-          aria-label={`Monthly store sales and orders for ${visibleYears.join(", ")}`}
+          aria-label={`Monthly store sales${showOrderTrend ? " and orders" : ""} for ${visibleYears.join(", ")}. Exact sales and orders are available in the monthly table.`}
           className="yearly-comparison-chart__svg"
           onMouseLeave={() => setActiveMonth(null)}
           role="img"
           viewBox={`0 0 ${YEARLY_CHART_WIDTH} ${YEARLY_CHART_HEIGHT}`}
         >
+          {[0, 0.25, 0.5, 0.75, 1].map((fraction) => (
+            <g key={`axis:${fraction}`} className="yearly-comparison-chart__tick">
+              <text x={YEARLY_CHART_LEFT - 10} y={salesY(maxSales * fraction) + 3} textAnchor="end">{formatValue(maxSales * fraction, "currency", currency, true)}</text>
+              <text x={YEARLY_CHART_WIDTH - YEARLY_CHART_RIGHT + 10} y={ordersY(maxOrders * fraction) + 3} textAnchor="start">{numberFormatter.format(Math.round(maxOrders * fraction))}</text>
+            </g>
+          ))}
           {[0.25, 0.5, 0.75, 1].map((fraction) => (
             <line
               className="chart-grid-line"
@@ -2706,7 +2734,7 @@ function YearlySalesOrdersChart({
           ))}
 
           {visible.map(({ year, seriesIndex }, visibleIndex) => {
-            const groupWidth = barWidth * visible.length;
+            const groupWidth = barWidth * visible.length + barGap * (visible.length - 1);
             return year.months.map((month, monthIndex) => {
               const height = YEARLY_CHART_TOP + plotHeight - salesY(month.sales);
               return (
@@ -2714,23 +2742,23 @@ function YearlySalesOrdersChart({
                   className={`yearly-sales-bar yearly-sales-bar--${seriesIndex}${
                     month.isPartial ? " yearly-sales-bar--partial" : ""
                   }${activeMonth === monthIndex ? " yearly-sales-bar--active" : ""}`}
-                  height={Math.max(height, 1)}
+                  height={Math.max(height, 0)}
                   key={`${year.year}:sales:${month.month}`}
-                  rx="3.5"
-                  ry="3.5"
+                  rx="1.5"
+                  ry="1.5"
                   width={barWidth}
                   x={
                     centreFor(monthIndex) -
                     groupWidth / 2 +
-                    visibleIndex * barWidth
+                    visibleIndex * (barWidth + barGap)
                   }
-                  y={YEARLY_CHART_TOP + plotHeight - Math.max(height, 1)}
+                  y={YEARLY_CHART_TOP + plotHeight - Math.max(height, 0)}
                 />
               );
             });
           })}
 
-          {visible.map(({ year, seriesIndex }) => {
+          {showOrderTrend && visible.map(({ year, seriesIndex }) => {
             const path = smoothLinePath(
               year.months.map((month, monthIndex) => ({
                 x: centreFor(monthIndex),
@@ -2825,15 +2853,8 @@ function YearlyPerformanceSection({
         <p>{yearly.ytd.label} compared like for like</p>
       </div>
 
-      <p className="semantic-note">
-        The chart compares {yearly.currentYear} with the two prior years. Its
-        current-month points stop on the same calendar day; the KPI cards and
-        primary like-for-like baseline is {yearly.previousYear}. The chart and
-        table share the year controls, so the detailed rows always match the
-        years currently selected.
-      </p>
-
       <div className="yearly-performance__workspace">
+
         <div className="metrics-grid yearly-performance__metrics">
           <article className="metric-card">
             <div className="metric-card__label">
@@ -2933,7 +2954,6 @@ function YearlyPerformanceSection({
             series={yearly.comparisonYears}
             visibleYears={visibleYears}
           />
-        </div>
 
         <div className={`yearly-data-disclosure${tableOpen ? " yearly-data-disclosure--open" : ""}`}>
           <button
@@ -3021,9 +3041,22 @@ function YearlyPerformanceSection({
                   </tbody>
                 </table>
               </div>
-              <p className="semantic-note">{yearly.note}</p>
+        <details className="panel card-notes">
+          <summary>Yearly comparison basis</summary>
+          <p>
+            The chart compares {yearly.currentYear} with the two prior years.
+            Current-month points stop on the same calendar day; KPI cards use
+            {yearly.previousYear} as the like-for-like baseline. Chart and table
+            follow the selected years.
+          </p>
+        </details>
+              <details className="card-notes">
+                <summary>Monthly data coverage</summary>
+                <p>{yearly.note}</p>
+              </details>
             </div>
           )}
+        </div>
         </div>
       </div>
     </section>
@@ -3252,7 +3285,6 @@ function CatalogueBreakdownPanel({
         : 0,
     );
 
-  const maxValue = Math.max(...displayRows.map((row) => row.value), 1);
   const active = displayRows.find((row) => row.key === activeKey) ?? null;
 
   const activeChange =
@@ -3402,6 +3434,7 @@ function CatalogueBreakdownPanel({
           <StackedBarChart
             ariaLabel={`Monthly ${CATALOGUE_LEVEL_TITLE[level].toLowerCase()}`}
             focusYear={focusYear}
+            formatAxisValue={(value) => formatValue(value, "currency", currency, true)}
             formatValue={(value) => formatValue(value, "currency", currency)}
             onFocusYearChange={setFocusYear}
             otherLabel="Other"
@@ -3425,6 +3458,7 @@ function CatalogueBreakdownPanel({
             {displayRows.map((row) => {
               const canDrillIn = !isSearching && level !== "product";
               const Row = canDrillIn ? "button" : "div";
+              const seriesIndex = Math.max(0, (stack?.nodes ?? rows).findIndex((node) => node.key === row.key));
 
               return (
                 <li
@@ -3462,6 +3496,7 @@ function CatalogueBreakdownPanel({
                           {row.orders === 1 ? "" : "s"}
                         </small>
                         <span className="bar-list__value">
+                          <strong className="bar-list__share">{(row.share * 100).toFixed(1)}%</strong>
                           {formatValue(row.value, "currency", currency)}
                         </span>
                         {(isYearlyMode
@@ -3477,11 +3512,11 @@ function CatalogueBreakdownPanel({
                     </div>
                     <div className="bar-list__track">
                       <span
-                        className={`bar-list__fill ${
+                        className={`bar-list__fill bar-list__fill--catalogue-${seriesIndex % 20} ${
                           activeKey === row.key ? "bar-list__fill--active" : ""
                         }`}
                         style={{
-                          width: `${Math.max((row.value / maxValue) * 100, 2)}%`,
+                          width: `${Math.min(100, Math.max(0, row.share * 100))}%`,
                         }}
                       />
                     </div>
@@ -3494,11 +3529,14 @@ function CatalogueBreakdownPanel({
         </div>
       )}
 
-      <p className="semantic-note">
+      <details className="card-notes">
+        <summary>Catalogue coverage</summary>
+        <p>
         {isSearching
           ? "Search reads the complete product index, so a product can be found without opening each taxonomy branch."
           : `Department and sub-department remain complete. Family and product are ranked by sales value and limited to Top ${CATALOGUE_TOP_COUNT}. Each row carries its full drill slug.`}
-      </p>
+        </p>
+      </details>
     </article>
   );
 }
@@ -3528,6 +3566,8 @@ export function StoreAnalyticsShell({
   // This page draws its own chrome, so it carries the same mobile drawer
   // control as AppFrame; without it the sidebar was unreachable at ≤760px.
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+  const topbarRef = useUtilityBarHeight();
+  const tableLayoutRef = useResponsiveTables();
   const closeMobileNav = useCallback(() => setIsMobileNavOpen(false), []);
   const [comparisonWindow, setComparisonWindow] =
     useState<ComparisonWindow>("previous");
@@ -3748,7 +3788,7 @@ export function StoreAnalyticsShell({
   }
 
   return (
-    <div className="app-frame">
+    <div className="app-frame app-frame--store">
       <a className="skip-link" href="#main-content">Skip to store analytics</a>
 
       <DashboardSidebar
@@ -3766,8 +3806,8 @@ export function StoreAnalyticsShell({
         <Link className="text-link" href="/">Back to paid media →</Link>
       </DashboardSidebar>
 
-      <main className="main-panel" id="main-content">
-        <header className="topbar">
+      <main className="main-panel" id="main-content" ref={tableLayoutRef}>
+        <header className="topbar" ref={topbarRef}>
           <button
             aria-controls="dashboard-primary-navigation"
             aria-expanded={isMobileNavOpen}
@@ -3799,6 +3839,7 @@ export function StoreAnalyticsShell({
               variant="utility"
             />
           </div>
+          <div className="topbar__operations">
           <div className="topbar__context">
             <span className="status-dot" />
             <span>Store source</span>
@@ -3850,6 +3891,8 @@ export function StoreAnalyticsShell({
             lastSyncAt={lastSyncAt}
             timeZone={snapshot.store.timezone}
           />
+          </div>
+          <div className="topbar__session" aria-label="Display and account controls">
           <ThemeToggle />
           <div className="viewer-menu">
             <span className="viewer-menu__identity">
@@ -3866,15 +3909,17 @@ export function StoreAnalyticsShell({
               </button>
             </form>
           </div>
+          </div>
         </header>
 
         <div
           aria-busy={isBusy}
           className={`content${isBusy ? " content--loading" : ""}`}
         >
+          <div className="store-reporting-header">
           <section className="hero hero--dashboard hero--store" id="store-overview">
             <div className="hero__copy">
-              <h1>Store Performance</h1>
+              <h1>Store performance</h1>
               <div className="hero__kicker">
                 <span className="hero__currency">
                   {activeAccountName} · {currency}
@@ -3890,8 +3935,8 @@ export function StoreAnalyticsShell({
               rather than submitting a form. */}
           <div
             aria-label="Reporting period and data refresh"
-            className={`filter-bar filter-bar--paid ${
-              isCondensed ? "filter-bar--condensed" : ""
+            className={`store-period-toolbar ${
+              isCondensed ? "store-period-toolbar--condensed" : ""
             }`}
             role="group"
           >
@@ -3908,7 +3953,7 @@ export function StoreAnalyticsShell({
               }
               quickPresets
             />
-            <div className="filter-actions">
+            {!isDummyMode && <div className="filter-actions">
               <button
                 className="button button--primary"
                 disabled={isBusy || !canTriggerSync}
@@ -3922,7 +3967,9 @@ export function StoreAnalyticsShell({
                     ? "Refresh data"
                     : "View-only access"}
               </button>
-            </div>
+            </div>}
+            <details className="store-period-context">
+              <summary>Reporting context · {formatDate(snapshot.selectedRange.start)} – {formatDate(snapshot.selectedRange.end)}</summary>
             <div
               aria-label="Applied active and comparison periods"
               className="filter-period-summary"
@@ -3958,6 +4005,8 @@ export function StoreAnalyticsShell({
             <p aria-live="polite" className="filter-message">
               {message}
             </p>
+            </details>
+          </div>
           </div>
 
           <YearlyPerformanceSection

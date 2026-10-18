@@ -13,6 +13,33 @@ import {
   type ConnectionTestState,
   type DataSourceCard,
 } from "../src/components/dashboard/connector-console";
+import { readOAuthNotice } from "../src/components/dashboard/data-sources-shell";
+
+test("a success URL cannot confirm a connector that is missing configuration", () => {
+  const params = new URLSearchParams("connected=meta-ads&status=success");
+  const blocked = card({ id: "meta-ads", status: "error", recovery: "contact-owner" });
+  const notice = readOAuthNotice(params, new Set(), [blocked]);
+  assert.equal(notice?.type, "warning");
+  assert.equal(notice?.title, "Connection is not ready");
+  assert.equal(readOAuthNotice(params)?.type, "warning");
+  assert.equal(readOAuthNotice(params, new Set(), [card({ id: "meta-ads" })])?.type, "success");
+  params.set("oauth_error", "missing_credentials");
+  params.set("platform", "meta-ads");
+  assert.equal(readOAuthNotice(params, new Set(), [card({ id: "meta-ads" })])?.type, "error");
+});
+
+test("a credential form still needs server storage before it can connect", () => {
+  const source = card({
+    connectMethod: "credentials", status: "error", recovery: "contact-owner",
+    setup: { settings: [{ name: "SUPABASE_SERVICE_ROLE_KEY", configured: false }], callbackUrl: null, requirements: [], documentationUrl: "https://developers.google.com/google-ads/api/docs/get-started/introduction" },
+  });
+  assert.equal(resolveConnectorAuthorizationState(source), "configuration-blocked");
+  assert.deepEqual(connectorChipPresentation(source, "configuration-blocked"), {
+    label: "Config required", modifier: "disconnected",
+  });
+  assert.match(render(source, { canManage: false }), /View setup requirements/);
+  assert.doesNotMatch(render(source), />Connect</);
+});
 
 /**
  * A permanent "Re-authorize" button beside a green chip told the operator the
@@ -193,10 +220,13 @@ test("a deployment misconfiguration is never answered with re-authorize", () => 
   );
 
   const markup = render(source);
-  assert.match(markup, /Ask the dashboard owner/);
+  assert.match(markup, /View setup requirements/);
   assert.doesNotMatch(markup, /Re-authorize now/);
   assert.doesNotMatch(markup, /console-button--primary/);
   assert.match(markup, /Config required/);
+  assert.doesNotMatch(markup, /More actions/);
+  assert.match(render(source, { canManage: false }), /View setup requirements/);
+  assert.doesNotMatch(render(source, { verifiedSourceId: source.id }), /Verified/);
 });
 
 test("the post-OAuth row confirms before it settles", () => {
@@ -244,7 +274,6 @@ test("the tray holds exactly what the surface does not", () => {
   for (const state of [
     "expiring-soon",
     "reauth-required",
-    "configuration-blocked",
   ] as const) {
     assert.deepEqual(
       resolveManageActionIds(card(), state),
@@ -252,6 +281,7 @@ test("the tray holds exactly what the surface does not", () => {
       `tray for ${state}`,
     );
   }
+  assert.deepEqual(resolveManageActionIds(card(), "configuration-blocked"), []);
 
   // A connector with no test endpoint never offers one, in either place.
   assert.deepEqual(

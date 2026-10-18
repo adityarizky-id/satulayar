@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import type { NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
 import { getAuthConfiguration } from "@/lib/auth/auth-config";
 
@@ -215,8 +215,53 @@ export function validateCSRFState(platformId: string, state: string, cookieState
   const timestamp = Number(parts[1]);
   if (!Number.isFinite(timestamp)) return false;
   // State is valid for 15 minutes (900,000 ms)
-  const isFresh = Date.now() - timestamp < 900_000;
+  const age = Date.now() - timestamp;
+  const isFresh = age >= 0 && age < 900_000;
   return isFresh;
+}
+
+export interface PopupOAuthSession {
+  state: string;
+  platform: "google-ads" | "google-analytics";
+  clientSlug: string;
+  userId: string;
+  createdAt: number;
+  fields: Record<string, string>;
+}
+
+/** Short-lived, authenticated encryption. Draft application secrets never enter URLs or storage. */
+export function sealOAuthSession(value: object): string {
+  const secret = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!secret) throw new Error("Secure workspace storage is not configured.");
+  const key = crypto.createHash("sha256").update(`satulayar-oauth-popup-v1:${secret}`).digest();
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
+  const encrypted = Buffer.concat([cipher.update(JSON.stringify(value), "utf8"), cipher.final()]);
+  return Buffer.concat([iv, cipher.getAuthTag(), encrypted]).toString("base64url");
+}
+
+export function openOAuthSession<T extends { createdAt: number }>(value: string | undefined): T | null {
+  if (!value || !process.env.SUPABASE_SERVICE_ROLE_KEY) return null;
+  try {
+    const key = crypto.createHash("sha256").update(`satulayar-oauth-popup-v1:${process.env.SUPABASE_SERVICE_ROLE_KEY}`).digest();
+    const bytes = Buffer.from(value, "base64url");
+    const decipher = crypto.createDecipheriv("aes-256-gcm", key, bytes.subarray(0, 12));
+    decipher.setAuthTag(bytes.subarray(12, 28));
+    const result = JSON.parse(Buffer.concat([decipher.update(bytes.subarray(28)), decipher.final()]).toString("utf8")) as T;
+    const age = Date.now() - result.createdAt;
+    return Number.isFinite(age) && age >= 0 && age < 900_000 ? result : null;
+  } catch { return null; }
+}
+
+export const popupCookieOptions = () => ({ httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax" as const, path: "/", maxAge: 900 });
+
+/** Standalone provider return screen. Only fixed copy; never interpolate provider errors or secrets. */
+export function oauthPopupResponse(platform: string, success: boolean): NextResponse {
+  const name = platform === "google-analytics" ? "Google Analytics 4" : "Google Ads";
+  const nonce = crypto.randomBytes(18).toString("base64");
+  return new NextResponse(`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${name} connection · Satulayar</title><style nonce="${nonce}">:root{color-scheme:light dark;font:16px/1.5 system-ui}body{margin:0;min-height:100dvh;display:grid;place-items:center;background:Canvas;color:CanvasText}main{max-width:28rem;padding:2rem;text-align:center}h1{font-size:1.6rem}button{font:inherit;padding:.6rem 1rem;cursor:pointer}small{display:block;margin-top:1rem}</style><main><p>Satulayar / ${name}</p><h1>${success ? "Connected successfully" : "Connection not completed"}</h1><p>${success ? "Reporting access was verified and saved for your selected brand. This window will close automatically." : "Return to Data sources to review the connection error and try again."}</p><button id="close" type="button">Close window</button><small>You can return to the dashboard if this window stays open.</small></main><script nonce="${nonce}">document.getElementById('close').onclick=()=>window.close();${success ? "setTimeout(()=>window.close(),1600);" : ""}</script></html>`, {
+    headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "Referrer-Policy": "no-referrer", "Content-Security-Policy": `default-src 'none'; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}'; frame-ancestors 'none'; base-uri 'none'` },
+  });
 }
 
 export interface TokenExchangeSuccess {
@@ -265,6 +310,9 @@ export async function exchangeOAuthCode(
         Accept: "application/json",
       },
       body: bodyParams.toString(),
+      cache: "no-store",
+      redirect: "error",
+      signal: AbortSignal.timeout(10_000),
     });
 
     const data = (await response.json()) as Record<string, unknown>;

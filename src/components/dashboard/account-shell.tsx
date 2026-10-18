@@ -8,10 +8,7 @@ import { rememberAccount } from "@/components/dashboard/filter-fields";
 import { PermissionsGrid } from "@/components/dashboard/permissions-grid";
 import { SessionIdentityPanel } from "@/components/dashboard/session-identity-panel";
 import { WorkspaceSwitcher } from "@/components/dashboard/workspace-switcher";
-import {
-  getPreviewAuditEvents,
-  type AuditEventRecord,
-} from "@/lib/audit/types";
+import type { AuditEventRecord } from "@/lib/audit/types";
 import type { DashboardViewer } from "@/lib/auth/types";
 import type { AccountOption } from "@/lib/dashboard/accounts";
 
@@ -26,7 +23,7 @@ export function AccountShell({
   selectedAccount: string;
   authMode: "preview" | "supabase";
   viewer: DashboardViewer;
-  auditEvents?: AuditEventRecord[];
+  auditEvents: AuditEventRecord[];
 }) {
   const [activeAccount, setActiveAccount] = useState(initialSelectedAccount);
   const [workspaceAnnouncement, setWorkspaceAnnouncement] = useState("");
@@ -50,9 +47,13 @@ export function AccountShell({
   // what the server recorded, and an empty trail stays empty rather than
   // borrowing examples that would read as real activity.
   const isSampleAudit = authMode === "preview";
+  // Preserve the server's sample timestamps through hydration and workspace
+  // switches. Regenerating examples here used a different clock on the client.
   const resolvedAuditEvents = isSampleAudit
-    ? getPreviewAuditEvents(activeAccount)
-    : (auditEvents ?? []);
+    ? auditEvents.map((event) => event.action === "audience.export"
+      ? { ...event, subject: `Meta Value-Based (${activeAccount})` }
+      : event)
+    : auditEvents;
 
   return (
     <AppFrame
@@ -70,6 +71,7 @@ export function AccountShell({
     >
       <header className="account-page-header">
         <div>
+          <span className="eyebrow">Workspace / Identity &amp; permissions</span>
           <h1>Account &amp; access</h1>
           <p>
             Choose the brand you are working in, confirm what your role can do, and
@@ -86,7 +88,7 @@ export function AccountShell({
 
       <div className="account-console-layout">
         <div className="account-access-overview">
-          <SessionIdentityPanel authMode={authMode} viewer={viewer} />
+          <SessionIdentityPanel authMode={authMode} viewer={viewer} workspaceName={activeWorkspace?.name} />
           <PermissionsGrid activeRole={viewer.role} />
         </div>
         <WorkspaceSwitcher
