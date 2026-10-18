@@ -37,6 +37,7 @@ import {
   buildCatalogueStack,
   buildStoreAnalyticsSnapshot,
   catalogueRowsForDisplay,
+  cohortHeatLevel,
   isAwaitingDispatch,
   netSalesOf,
   storeForAccount,
@@ -761,6 +762,19 @@ test("cohort retention starts at 100% and decays without going negative", () => 
   }
   assert.equal(snapshot.cohorts[0]?.retention.length, 8);
   assert.equal(snapshot.cohorts.at(-1)?.retention.length, 1);
+});
+
+test("cohort heat levels rise with retention and keep missing months distinct", () => {
+  assert.equal(cohortHeatLevel(undefined), null);
+  assert.equal(cohortHeatLevel(0), 0);
+  assert.equal(cohortHeatLevel(0.05), 1);
+  assert.equal(cohortHeatLevel(0.12), 2);
+  assert.equal(cohortHeatLevel(0.2), 3);
+  assert.equal(cohortHeatLevel(0.3), 4);
+  assert.equal(cohortHeatLevel(0.4), 5);
+  assert.equal(cohortHeatLevel(1), 6);
+  const levels = [0.01, 0.1, 0.19, 0.29, 0.39, 0.6, 1].map((value) => cohortHeatLevel(value) ?? -1);
+  assert.deepEqual([...levels].sort((a, b) => a - b), levels);
 });
 
 test("RFM analysis preserves stable labels and reconciles every segment", () => {

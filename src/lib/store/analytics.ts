@@ -1163,6 +1163,22 @@ const AWAITING_DISPATCH_SET: ReadonlySet<StoreOrderState> = new Set(
  * scorecard, the store connector, and their tests all read the lifecycle the same
  * way instead of each hard-coding its own list of state names.
  */
+/**
+ * Sequential heat level for a cohort retention share: 6 is the acquisition
+ * month (100%), 1 is any return at all, 0 is a measured zero. A month the
+ * cohort has not reached yet is `null`, never zero.
+ */
+export function cohortHeatLevel(retention: number | undefined): number | null {
+  if (retention === undefined || Number.isNaN(retention)) return null;
+  if (retention >= 0.95) return 6;
+  if (retention >= 0.4) return 5;
+  if (retention >= 0.3) return 4;
+  if (retention >= 0.2) return 3;
+  if (retention >= 0.12) return 2;
+  if (retention > 0) return 1;
+  return 0;
+}
+
 export function isAwaitingDispatch(state: StoreOrderState): boolean {
   return AWAITING_DISPATCH_SET.has(state);
 }

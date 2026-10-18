@@ -133,6 +133,13 @@ Dark supersedes the previous gradient material and rounded control treatment:
 - Text overflow contract: bar-list labels, order-rail captions and the insight
   lead reflow instead of truncating without a title. Below 680px the RFM grid
   scrolls inside its figure, with rows tall enough for two-line segment names.
+- Retention cohort matrix (18 October 2026) follows the Store ZIP: a full-cell
+  sequential green heatmap with six levels from `cohortHeatLevel`, a legend
+  beside the heading, one-decimal shares, and a dash for months a cohort has
+  not reached. M0 uses dark ink on green for AA, not the reference's white.
+  It keeps its own bounded scroller and sticky cohort column instead of the
+  labelled-row table reflow. At wide workspaces the RFM grid fills its
+  controls column, and the Store scorecard uses six columns.
 
 The ZIP correction also moves Paid utility chrome above both sidebar and main
 content. Other routes keep the utility bar beside the sidebar. Desktop Worklog

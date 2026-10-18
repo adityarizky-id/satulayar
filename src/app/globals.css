@@ -462,6 +462,18 @@ html[data-theme="light"] {
   --mode-dummy-fg: #7e22ce;
   --mode-dummy-bg: #f3e8ff;
   --mode-dummy-border: #d8b4fe;
+  /* Cohort retention heatmap: sequential green, Stitch Light steps. */
+  --cohort-heat-0: var(--surface-card);
+  --cohort-heat-1: #f0fdf4;
+  --cohort-heat-2: #dcfce7;
+  --cohort-heat-3: #bbf7d0;
+  --cohort-heat-4: #86efac;
+  --cohort-heat-5: #4ade80;
+  --cohort-heat-6: #22c55e;
+  --cohort-ink-soft: #166534;
+  --cohort-ink-strong: #052e16;
+  --cohort-ink-4: var(--cohort-ink-strong);
+  --cohort-heat-empty: #f7f9f7;
 
   --topbar-bg: rgba(255, 255, 255, 0.9);
   --topbar-edge: rgba(40, 63, 49, 0.1);
@@ -518,6 +530,17 @@ html[data-theme="dark"] {
   --mode-dummy-fg: #c084fc;
   --mode-dummy-bg: rgba(168, 85, 247, 0.15);
   --mode-dummy-border: rgba(168, 85, 247, 0.35);
+  --cohort-heat-0: transparent;
+  --cohort-heat-1: color-mix(in srgb, #35e27d 12%, transparent);
+  --cohort-heat-2: color-mix(in srgb, #35e27d 20%, transparent);
+  --cohort-heat-3: color-mix(in srgb, #35e27d 30%, transparent);
+  --cohort-heat-4: color-mix(in srgb, #35e27d 45%, transparent);
+  --cohort-heat-5: color-mix(in srgb, #35e27d 82%, transparent);
+  --cohort-heat-6: #35e27d;
+  --cohort-ink-soft: var(--text-primary);
+  --cohort-ink-strong: #003919;
+  --cohort-ink-4: var(--text-primary);
+  --cohort-heat-empty: rgba(255, 255, 255, 0.025);
   /* Stitch dark workspace: flat ink surfaces and legible technical chrome. */
   --font-display: Inter, "Segoe UI Variable", "Segoe UI", sans-serif;
   --font-sans: Inter, "Segoe UI Variable", "Segoe UI", sans-serif;
@@ -25226,3 +25249,47 @@ html[data-theme] .rfm-action-card__count { white-space: nowrap; }
 html[data-theme] .rfm-customer-table .rfm-cust-segment { display: inline-grid; grid-template-columns: auto 1fr; justify-items: start; align-items: center; column-gap: 6px; row-gap: 4px; }
 html[data-theme] .rfm-customer-table .rfm-cust-segment > small { grid-column: 1 / -1; }
 html[data-theme] .rfm-customer-table :is(th, td):nth-child(2) { text-align: left; }
+
+/* Retention cohort matrix · Stitch store reference. A full-cell sequential
+   heatmap; a dash marks a month the cohort has not reached yet. */
+html[data-theme] .cohort-matrix__heading { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; }
+html[data-theme] .cohort-matrix__heading p { margin: 6px 0 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
+html[data-theme] .cohort-matrix__legend { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--text-secondary); font: 10px/1.4 var(--font-mono); }
+html[data-theme] .cohort-matrix__legend-scale { display: inline-flex; align-items: center; gap: 4px; }
+html[data-theme] .cohort-matrix__legend-scale i { width: 12px; height: 12px; border: 1px solid var(--sl-border); border-radius: 3px; }
+html[data-theme] .cohort-matrix__legend-scale i[data-level="1"] { background: var(--cohort-heat-1); }
+html[data-theme] .cohort-matrix__legend-scale i[data-level="3"] { background: var(--cohort-heat-3); }
+html[data-theme] .cohort-matrix__legend-scale i[data-level="5"] { background: var(--cohort-heat-5); }
+html[data-theme] .cohort-matrix__legend-scale i[data-level="6"] { background: var(--cohort-heat-6); }
+html[data-theme] .cohort-matrix__scroller { overflow-x: auto; scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track); }
+html[data-theme] .cohort-matrix__scroller:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+html[data-theme] .cohort-matrix__table { width: 100%; min-width: 640px; border-collapse: collapse; font: 12px/1.4 var(--font-mono); font-variant-numeric: tabular-nums lining-nums; }
+html[data-theme] .cohort-matrix__table :is(th, td) { padding: 7px 10px; border: 0; border-bottom: 1px solid var(--sl-border); background: transparent; text-align: center; white-space: nowrap; }
+html[data-theme] .cohort-matrix__table thead th { color: var(--text-secondary); font: 10px/1.4 var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; }
+html[data-theme] .cohort-matrix__table :is(thead th, tbody th):first-child { text-align: left; }
+html[data-theme] .cohort-matrix__table tbody th { color: var(--text-primary); font-weight: 600; }
+html[data-theme] .cohort-matrix__table .cohort-matrix__customers { color: var(--text-secondary); }
+html[data-theme] .cohort-matrix__table tbody tr:last-child :is(th, td) { border-bottom: 0; }
+html[data-theme] .cohort-matrix__table .cohort-heat { border-bottom-color: var(--surface-card); color: var(--cohort-ink-soft); }
+html[data-theme] .cohort-matrix__table .cohort-heat[data-level="0"] { background: var(--cohort-heat-0); }
+html[data-theme] .cohort-matrix__table .cohort-heat[data-level="1"] { background: var(--cohort-heat-1); }
+html[data-theme] .cohort-matrix__table .cohort-heat[data-level="2"] { background: var(--cohort-heat-2); }
+html[data-theme] .cohort-matrix__table .cohort-heat[data-level="3"] { background: var(--cohort-heat-3); }
+html[data-theme] .cohort-matrix__table .cohort-heat[data-level="4"] { background: var(--cohort-heat-4); color: var(--cohort-ink-4); font-weight: 600; }
+html[data-theme] .cohort-matrix__table .cohort-heat[data-level="5"] { background: var(--cohort-heat-5); color: var(--cohort-ink-strong); font-weight: 600; }
+html[data-theme] .cohort-matrix__table .cohort-heat[data-level="6"] { background: var(--cohort-heat-6); color: var(--cohort-ink-strong); font-weight: 700; }
+html[data-theme] .cohort-matrix__table .cohort-heat--empty { background: var(--cohort-heat-empty); color: var(--text-muted); }
+html[data-theme] .cohort-matrix__table :is(thead th, tbody th):first-child { position: sticky; left: 0; z-index: 1; background: var(--surface-card); }
+/* The customer roster spans the section like every other Store card. */
+html[data-theme] .rfm-deepdive { margin: 20px 0 0; box-shadow: var(--card-shadow); }
+/* RFM grid fills the height its controls column sets, rather than leaving
+   an empty band beneath the plot. Ticks already divide the plot in fifths. */
+@container workspace (min-width: 900px) {
+  html[data-theme] .rfm-workspace__report { display: flex; flex-direction: column; }
+  html[data-theme] .rfm-grid-figure { display: flex; flex: 1 1 auto; flex-direction: column; }
+  html[data-theme] .rfm-grid-plot { display: flex; flex: 1 1 auto; flex-direction: column; }
+  html[data-theme] .rfm-grid-plot__cells { flex: 1 1 auto; grid-template-rows: repeat(5, minmax(58px, 1fr)); }
+  /* Store scorecard: six compact columns as in the Stitch reference. */
+  html[data-theme] #store-scorecard .metrics-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  html[data-theme] #store-scorecard .metrics-grid > .metric-card:last-child:nth-child(6n + 5) { grid-column: span 2; }
+}

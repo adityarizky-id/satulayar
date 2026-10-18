@@ -59,6 +59,7 @@ import type {
 import {
   CATALOGUE_TOP_COUNT,
   catalogueRowsForDisplay,
+  cohortHeatLevel,
 } from "@/lib/store/analytics";
 import type {
   BreakdownRow,
@@ -2550,56 +2551,98 @@ function RfmAnalysisPanel({
   );
 }
 
-function CohortGrid({ rows }: { rows: CohortRow[] }) {
+const COHORT_HINT =
+  "Month 0 is the acquisition month. Each later column is the share of that cohort that ordered again, measured against its own acquisition month, so the comparison period does not apply here. A dash marks a month the cohort has not reached yet.";
+
+function formatCohortShare(retention: number) {
+  return retention >= 1 ? "100%" : `${(retention * 100).toFixed(1)}%`;
+}
+
+function CohortMatrix({ rows, asOf }: { rows: CohortRow[]; asOf: string }) {
   const columns = Math.max(...rows.map((row) => row.retention.length), 1);
+  const cohortLabel = (cohort: string) =>
+    monthFormatter.format(new Date(`${cohort}-01T12:00:00Z`));
+  const years = [...new Set(rows.map((row) => row.cohort.slice(0, 4)))];
+  const span =
+    years.length === 1
+      ? years[0]
+      : rows.length > 0
+        ? `${cohortLabel(rows[0].cohort)} – ${cohortLabel(rows[rows.length - 1].cohort)}`
+        : null;
+  const title = span ? `Retention cohort matrix (${span})` : "Retention cohort matrix";
 
   return (
-    <div className="table-scroller">
-      <table className="data-table cohort-table">
-        <thead>
-          <tr>
-            <th scope="col">Cohort</th>
-            <th scope="col">Customers</th>
-            {Array.from({ length: columns }, (_, index) => (
-              <th key={index} scope="col">
-                M{index}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.cohort}>
-              <th scope="row">
-                {monthFormatter.format(new Date(`${row.cohort}-01T12:00:00Z`))}
-              </th>
-              <td>{row.customers}</td>
-              {Array.from({ length: columns }, (_, index) => {
-                const retention = row.retention[index];
-                return (
-                  <td key={index}>
-                    {retention === undefined ? (
-                      ""
-                    ) : (
-                      <span
-                        className="cohort-cell"
-                        style={{
-                          background: `color-mix(in srgb, var(--sl-green) ${Math.round(
-                            retention * 70,
-                          )}%, transparent)`,
-                        }}
-                      >
-                        {(retention * 100).toFixed(0)}%
-                      </span>
-                    )}
-                  </td>
-                );
-              })}
+    <article className="panel cohort-matrix">
+      <div className="panel__heading cohort-matrix__heading">
+        <div>
+          <span className="eyebrow">Retention</span>
+          <h2>
+            <span className="metric-label-inline">
+              {title}
+              <MetricHint label={title} text={COHORT_HINT} />
+            </span>
+          </h2>
+          <p>
+            Share of each acquisition cohort that ordered again, M0 through M
+            {columns - 1}. Cohorts up to {asOf}.
+          </p>
+        </div>
+        <div className="cohort-matrix__legend">
+          <span>Heatmap intensity</span>
+          <span className="cohort-matrix__legend-scale" aria-hidden="true">
+            <span>low</span>
+            <i data-level="1" />
+            <i data-level="3" />
+            <i data-level="5" />
+            <i data-level="6" />
+            <span>high</span>
+          </span>
+        </div>
+      </div>
+      <div className="cohort-matrix__scroller" role="region" aria-label="Cohort retention table" tabIndex={0}>
+        <table
+          aria-label={`${title}: retention share by month since acquisition`}
+          className="cohort-matrix__table"
+        >
+          <thead>
+            <tr>
+              <th scope="col">Cohort</th>
+              <th scope="col">Customers</th>
+              {Array.from({ length: columns }, (_, index) => (
+                <th key={index} scope="col">
+                  M{index}
+                </th>
+              ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.cohort}>
+                <th scope="row">{cohortLabel(row.cohort)}</th>
+                <td className="cohort-matrix__customers">{row.customers}</td>
+                {Array.from({ length: columns }, (_, index) => {
+                  const retention = row.retention[index];
+                  const level = cohortHeatLevel(retention);
+                  return level === null ? (
+                    <td
+                      aria-label={`M${index} not reached yet`}
+                      className="cohort-heat cohort-heat--empty"
+                      key={index}
+                    >
+                      –
+                    </td>
+                  ) : (
+                    <td className="cohort-heat" data-level={level} key={index}>
+                      {formatCohortShare(retention!)}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </article>
   );
 }
 
@@ -4027,14 +4070,10 @@ export function StoreAnalyticsShell({
           </section>
 
           <section className="section" id="store-cohorts">
-            <Panel
-              eyebrow="Retention"
-              hint="Month 0 is the acquisition month. Cohorts follow the active period end and measure retention against their own acquisition month, so the comparison baseline does not apply here."
-              meta={`Cohorts up to ${formatDate(snapshot.selectedRange.end)}`}
-              title="Customer cohort analysis"
-            >
-              <CohortGrid rows={snapshot.cohorts} />
-            </Panel>
+            <CohortMatrix
+              asOf={formatDate(snapshot.selectedRange.end)}
+              rows={snapshot.cohorts}
+            />
           </section>
 
           <section className="section" id="store-scorecard">
